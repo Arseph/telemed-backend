@@ -94,7 +94,12 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/admin-facility', [AdminManageController::class, 'AdminFacility']);
     Route::post('/update-facility', [AdminManageController::class, 'updateFacility']);
     Route::match(['GET', 'POST'], '/admin-patient', [AdminManageController::class, 'patientList']);
-    Route::get('/admin-patient-meeting-info', [AdminManageController::class, 'meetingInfo']);
+    // Route::get('/admin-patient-meeting-info', [AdminManageController::class, 'meetingInfo']);
+    Route::get('/admin-patient-meeting-info', [TeleController::class, 'meetingInfo']); //conroller workaround
+    Route::get('/get-demoprofile/{meeting_id}', [TeleController::class, 'getDP']); // fetch DP 
+    Route::post('/save-demoprofile', [TeleController::class, 'storeDP']); //save dp
+
+
     Route::get('/admin-join-meeting', [AdminTeleController::class, 'joinMeeting']);
     Route::get('/admin-doctors', [AdminManageController::class, 'indexDoctors']);
 
@@ -219,3 +224,4 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/notif-patient-info/{id}', [NotiFController::class, 'patientInfo']);
     Route::post('/notif-patient-accept/{id}', [NotiFController::class, 'patientAccept']);
 });
+

@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
+use App\Models\DemoProfile;
+
 class TeleController extends Controller
 {
     public function index(Request $request)
@@ -215,12 +217,12 @@ class TeleController extends Controller
         $user = Auth::user();
         $user_id = $user->id;
         $facility = $user->facility->facilityname;
-        PusherHelper::trigger('my-channel.'.$docid, 'my-event.'.$docid, [
-            'title' => 'New Teleconsultation Request',
-            'subtitle' => $facility,
-            'time' => Carbon::now(),
-            'isSeen' => false,
-        ]);
+        // PusherHelper::trigger('my-channel.'.$docid, 'my-event.'.$docid, [
+        //     'title' => 'New Teleconsultation Request',
+        //     'subtitle' => $facility,
+        //     'time' => Carbon::now(),
+        //     'isSeen' => false,
+        // ]);
         $req->request->add([
             'user_id' => $user_id,
             'status' => 'Pending',
@@ -395,18 +397,35 @@ class TeleController extends Controller
         }
     }
 
-    public function adminMeetingInfo(Request $req)
+    // public function adminMeetingInfo(Request $req)
+    // {
+    //     $meeting = Meeting::select(
+    //         'meetings.*',
+    //         'pat.*',
+    //         'meetings.id as meetID',
+    //         'user.fname as docfname',
+    //         'user.mname as docmname',
+    //         'user.lname as doclname',
+    //     )->leftJoin('patients as pat', 'pat.id', '=', 'meetings.patient_id')
+    //         ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
+    //         ->where('meetings.id', $req->meet_id)
+    //         ->first();
+
+    //     return json_encode($meeting);
+    // }
+
+        public function adminMeetingInfo(Request $req)
     {
         $meeting = Meeting::select(
-            'meetings.*',
+            'teleconsults.*',
             'pat.*',
-            'meetings.id as meetID',
+            'teleconsults.id as meetID',
             'user.fname as docfname',
             'user.mname as docmname',
             'user.lname as doclname',
-        )->leftJoin('patients as pat', 'pat.id', '=', 'meetings.patient_id')
+        )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
             ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
-            ->where('meetings.id', $req->meet_id)
+            ->where('teleconsults.id', $req->meet_id)
             ->first();
 
         return json_encode($meeting);
@@ -415,6 +434,16 @@ class TeleController extends Controller
     public function meetingInfo(Request $req)
     {
         $meeting = Teleconsult::select(
+            'brgyp.brg_name as pbrgyname',
+            'munp.muni_name as pmuniname',
+            'provp.prov_name as pprov',
+            'brgy.brg_name as brgyname',
+            'mun.muni_name as muniname',
+            'reg.reg_desc as regname',
+            'prov.prov_name as provname',
+            'user.fname as docfname',
+            'user.mname as docmname',
+            'user.lname as doclname',
             'teleconsults.*',
             'pat.*',
             'teleconsults.id as meetID',
@@ -434,20 +463,150 @@ class TeleController extends Controller
             ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
             ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
             ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
+            ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
+            ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
+            ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
+            ->leftJoin('municipal_cities as mun','mun.muni_psgc','=', 'fac.muni_psgc')
+            ->leftJoin('barangays as brgy','brgy.brg_psgc','=', 'fac.brgy_psgc')
+            //patient full address
+            ->leftJoin('provinces as provp','provp.prov_psgc','=', 'pat.province')
+            ->leftJoin('municipal_cities as munp','munp.muni_psgc','=', 'pat.muncity')
+            ->leftJoin('barangays as brgyp','brgyp.brg_psgc','=', 'pat.brgy')
             ->where('teleconsults.id', $req->meet_id)
             ->first();
-        if ($meeting->phyexam) {
-            $conjunctiva = $meeting->phyexam->conjunctiva;
-            $neck = $meeting->phyexam->neck;
-            $breast = $meeting->phyexam->breast;
-            $thorax = $meeting->phyexam->thorax;
-            $abdomen = $meeting->phyexam->abdomen;
-            $genitals = $meeting->phyexam->genitals;
-            $extremities = $meeting->phyexam->extremities;
-        }
 
         return json_encode($meeting);
     }
+
+    // Get Demographic Profile by meeting_id
+    public function getDP($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Demographic Profile for meeting_id: {$meeting_id}");
+
+            $dp = \App\Models\DemoProfile::where('meeting_id', $meeting_id)->first();
+
+            if (!$dp) {
+                return response()->json([
+                    'message' => 'No demographic profile found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Demographic profile retrieved successfully.',
+                'data' => $dp,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch demographic profile.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update Demographic Profile
+    public function storeDP(Request $request)
+    {
+        try {
+            \Log::info('Incoming DP Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'             => 'required|integer',
+                'name_physician'         => 'nullable|string|max:255',
+                'address_health'         => 'nullable|string|max:255',
+                'tele_partner_platform'  => 'nullable|string|max:255',
+                'prior_tele_proper'      => 'nullable|integer',
+                'is_patient_accompanied' => 'nullable|integer',
+                'case_no'                => 'nullable|integer',
+                'name_of_companion'      => 'nullable|string|max:255',
+                'relationship'           => 'nullable|string|max:255',
+                'phone_no'               => 'nullable|string|max:255',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingDP = \App\Models\DemoProfile::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingDP) {
+                // ✅ Update the existing demographic profile
+                $existingDP->update($validated);
+
+                return response()->json([
+                    'message' => 'Demographic profile updated successfully.',
+                    'data' => $existingDP,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $demoProfile = \App\Models\DemoProfile::create($validated);
+
+            return response()->json([
+                'message' => 'Demographic profile saved successfully.',
+                'data' => $demoProfile,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save demographic profile.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+
+    // public function meetingInfo(Request $req)
+    // {
+    //     $meeting = Teleconsult::select(
+    //         'teleconsults.*',
+    //         'pat.*',
+    //         'teleconsults.id as meetID',
+    //         'd.case_no as caseNO',
+    //         'd.id as demographic_id',
+    //         'ch.id as clinical_id',
+    //         'pe.id as phy_id',
+    //         'cs.id as covidscreen_id',
+    //         'csa.id as covidassess_id',
+    //         'das.id as diagassess_id',
+    //         'fac.facilityname as FacName'
+    //     )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
+    //         ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
+    //         ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
+    //         ->where('teleconsults.id', $req->meet_id)
+    //         ->first();
+            
+    //         👇 Add this line to inspect what you get
+    //         dd($meeting);
+
+    //     if ($meeting->phyexam) {
+    //         $conjunctiva = $meeting->phyexam->conjunctiva;
+    //         $neck = $meeting->phyexam->neck;
+    //         $breast = $meeting->phyexam->breast;
+    //         $thorax = $meeting->phyexam->thorax;
+    //         $abdomen = $meeting->phyexam->abdomen;
+    //         $genitals = $meeting->phyexam->genitals;
+    //         $extremities = $meeting->phyexam->extremities;
+    //     }
+
+    //     return json_encode($meeting);
+    // }
 
     public function getPendingMeeting($id)
     {
@@ -487,12 +646,12 @@ class TeleController extends Controller
                 'is_started' => 0,
             ];
             $create_meeting = Teleconsult::create($create_data);
-            PusherHelper::trigger('my-channel.'.$meet->user_id, 'my-event.'.$meet->user_id, [
-                'title' => 'New Teleconsultation Accepted',
-                'subtitle' => $userfac,
-                'time' => Carbon::now(),
-                'isSeen' => false,
-            ]);
+            // PusherHelper::trigger('my-channel.'.$meet->user_id, 'my-event.'.$meet->user_id, [
+            //     'title' => 'New Teleconsultation Accepted',
+            //     'subtitle' => $userfac,
+            //     'time' => Carbon::now(),
+            //     'isSeen' => false,
+            // ]);
         }
         $meet_id = $action == 'Accept' ? $create_meeting->id : null;
         $data = [
@@ -725,12 +884,12 @@ class TeleController extends Controller
                 'start_time' => $start_time,
             ];
             if ($tel->user_id != $user->id) {
-                PusherHelper::trigger('my-channel.'.$tel->user_id, 'my-event.'.$tel->user_id, [
-                    'title' => 'Teleconsultation - '.$tel->title.' Started!',
-                    'subtitle' => $userfac,
-                    'time' => Carbon::now(),
-                    'isSeen' => false,
-                ]);
+                // PusherHelper::trigger('my-channel.'.$tel->user_id, 'my-event.'.$tel->user_id, [
+                //     'title' => 'Teleconsultation - '.$tel->title.' Started!',
+                //     'subtitle' => $userfac,
+                //     'time' => Carbon::now(),
+                //     'isSeen' => false,
+                // ]);
                 if (! $tel->start_time) {
                     $tel = $tel->update($create_data);
                 }

@@ -450,6 +450,7 @@ class TeleController extends Controller
             'd.case_no as caseNO',
             'd.id as demographic_id',
             'ch.id as clinical_id',
+            'pe.*',
             'pe.id as phy_id',
             'cs.id as covidscreen_id',
             'csa.id as covidassess_id',
@@ -563,6 +564,76 @@ class TeleController extends Controller
             ], 500);
         }
     }
+
+    // Store / Update clinical history
+    public function storeCH(Request $request)
+    {
+        try {
+            \Log::info('Incoming DP Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'             => 'required|integer',
+                'name_physician'         => 'nullable|string|max:255',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingDP = \App\Models\DemoProfile::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingDP) {
+                // ✅ Update the existing demographic profile
+                $existingDP->update($validated);
+
+                return response()->json([
+                    'message' => 'Demographic profile updated successfully.',
+                    'data' => $existingDP,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $demoProfile = \App\Models\DemoProfile::create($validated);
+
+            return response()->json([
+                'message' => 'Demographic profile saved successfully.',
+                'data' => $demoProfile,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save demographic profile.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    //fetch facility list
+    public function getFacilities()
+    {
+        try {
+            $facilities = Facility::orderBy('facilityname', 'asc')
+                ->get(['id', 'facilityname']);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $facilities
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
 
 
 

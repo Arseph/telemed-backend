@@ -28,6 +28,9 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
 use App\Models\DemoProfile;
+use App\Models\ClinicalHistory;
+use App\Models\PhysicalExam;
+
 
 class TeleController extends Controller
 {
@@ -522,12 +525,12 @@ class TeleController extends Controller
             // ✅ Validate request data
             $validated = validator($data, [
                 'meeting_id'             => 'required|integer',
-                'name_physician'         => 'nullable|string|max:255',
+                'name_physician'         => 'required|string|max:255',
                 'address_health'         => 'nullable|string|max:255',
                 'tele_partner_platform'  => 'nullable|string|max:255',
-                'prior_tele_proper'      => 'nullable|integer',
-                'is_patient_accompanied' => 'nullable|integer',
-                'case_no'                => 'nullable|integer',
+                'prior_tele_proper'      => 'required|integer',
+                'is_patient_accompanied' => 'required|integer',
+                'case_no'                => 'required|integer',
                 'name_of_companion'      => 'nullable|string|max:255',
                 'relationship'           => 'nullable|string|max:255',
                 'phone_no'               => 'nullable|string|max:255',
@@ -565,11 +568,40 @@ class TeleController extends Controller
         }
     }
 
+    // ✅ Get Clinical History by meeting_id
+    public function getCH($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Clinical History for meeting_id: {$meeting_id}");
+
+            $ch = \App\Models\ClinicalHistory::where('meeting_id', $meeting_id)->first();
+
+            if (!$ch) {
+                return response()->json([
+                    'message' => 'No clinical history found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Clinical history retrieved successfully.',
+                'data' => $ch,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('CH Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch clinical history.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     // Store / Update clinical history
     public function storeCH(Request $request)
     {
         try {
-            \Log::info('Incoming DP Request:', $request->all());
+            \Log::info('Incoming CH Request:', $request->all());
 
             // ✅ Convert empty strings to null to avoid validation issues
             $data = collect($request->all())->map(function ($value) {
@@ -578,37 +610,140 @@ class TeleController extends Controller
 
             // ✅ Validate request data
             $validated = validator($data, [
-                'meeting_id'             => 'required|integer',
-                'name_physician'         => 'nullable|string|max:255',
+                'meeting_id'                   => 'required|integer',
+                'reason_consult'               => 'required|string|max:255',
+                'date_onset_illness'           => 'required|date',
+                'facility_id'                  => 'required|integer',
+                'date_referral'                => 'nullable|date',
+                'known_medical_history'        => 'required|string|max:255',
+                'current_medication'           => 'required|string|max:255',
+                'blood_type'                   => 'required|string|max:10',
+                'clinical_status_time_consult' => 'required|string|max:50',
+                'specific_findings'            => 'required|string|max:50',
             ])->validate();
 
             // ✅ Try to find an existing record first
-            $existingDP = \App\Models\DemoProfile::where('meeting_id', $validated['meeting_id'])->first();
+            $existingCH = \App\Models\ClinicalHistory::where('meeting_id', $validated['meeting_id'])->first();
 
-            if ($existingDP) {
+            if ($existingCH) {
                 // ✅ Update the existing demographic profile
-                $existingDP->update($validated);
+                $existingCH->update($validated);
 
                 return response()->json([
                     'message' => 'Demographic profile updated successfully.',
-                    'data' => $existingDP,
+                    'data' => $existingCH,
                     'status' => 'updated',
                 ], 200);
             }
 
             // ✅ Otherwise, create a new one
-            $demoProfile = \App\Models\DemoProfile::create($validated);
+            $clinicalHistory = \App\Models\PhysicalExam::create($validated);
 
             return response()->json([
-                'message' => 'Demographic profile saved successfully.',
-                'data' => $demoProfile,
+                'message' => 'Clinical history saved successfully.',
+                'data' => $clinicalHistory,
                 'status' => 'created',
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            \Log::error('CH Save/Update Error:', ['error' => $e->getMessage()]);
             return response()->json([
-                'message' => 'Failed to save demographic profile.',
+                'message' => 'Failed to save clinical history.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ✅ Get Physical Exam by meeting_id
+    public function getPE($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Physical Exam for meeting_id: {$meeting_id}");
+
+            $pe = \App\Models\PhysicalExam::where('meeting_id', $meeting_id)->first();
+
+            if (!$pe) {
+                return response()->json([
+                    'message' => 'No Physical Exam found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Physical Exam retrieved successfully.',
+                'data' => $pe,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('PE Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch physical exam.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update physical exam
+    public function storePE(Request $request)
+    {
+        try {
+            \Log::info('Incoming PE Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'         => 'required|integer',
+                'head'               => 'required|string|max:100',
+                'conjunctiva'        => 'required|string|max:100',
+                'con_remarks'        => 'nullable|string|max:255',
+                'neck'               => 'required|string|max:100',
+                'chest'              => 'required|string|max:100',
+                'breast'             => 'required|string|max:100',
+                'breast_remarks'     => 'nullable|string|max:255',
+                'thorax'             => 'required|string|max:100',
+                'thorax_remarks'     => 'nullable|string|max:255',
+                'abdomen'            => 'required|string|max:100',
+                'abdomen_remarks'    => 'nullable|string|max:255',
+                'genitals'           => 'required|string|max:100',
+                'genital_remarks'    => 'nullable|string|max:255',
+                'extremities'        => 'required|string|max:100',
+                'extremities_remarks'=> 'nullable|string|max:255',
+                'others'             => 'nullable|string|max:255',
+                'waist_circumference'=> 'nullable|string|max:255',
+            ])->validate();
+
+
+            // ✅ Try to find an existing record first
+            $existingPE = \App\Models\PhysicalExam::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingPE) {
+                // ✅ Update the existing demographic profile
+                $existingPE->update($validated);
+
+                return response()->json([
+                    'message' => 'Demographic profile updated successfully.',
+                    'data' => $existingPE,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $physicalExam = \App\Models\PhysicalExam::create($validated);
+
+            return response()->json([
+                'message' => 'Physical exam saved successfully.',
+                'data' => $physicalExam,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('PE Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save physical exam.',
                 'error' => $e->getMessage(),
             ], 500);
         }

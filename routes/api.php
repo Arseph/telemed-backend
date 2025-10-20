@@ -98,6 +98,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/admin-patient-meeting-info', [TeleController::class, 'meetingInfo']); //conroller workaround
     Route::get('/get-demoprofile/{meeting_id}', [TeleController::class, 'getDP']); // fetch DP 
     Route::post('/save-demoprofile', [TeleController::class, 'storeDP']); //save dp
+    Route::get('/get-clinicalhistory/{meeting_id}', [TeleController::class, 'getCH']); // fetch ch 
+    Route::post('/save-clinicalhistory', [TeleController::class, 'storeCH']); //save ch
+    Route::get('/get-physicalexam/{meeting_id}', [TeleController::class, 'getPE']); // fetch pe 
+    Route::post('/save-physicalexam', [TeleController::class, 'storePE']); //save pe
     Route::get('/tele/facilities', [TeleController::class, 'getFacilities']); //fetch facility list
 
 

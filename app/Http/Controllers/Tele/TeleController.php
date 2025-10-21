@@ -769,6 +769,112 @@ class TeleController extends Controller
         }
     }
 
+    // Get Covid-19 Screening by meeting_id
+    public function getCV($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Covid-19 Screening for meeting_id: {$meeting_id}");
+
+            $cv = \App\Models\CovidScreening::where('meeting_id', $meeting_id)->first();
+
+            if (!$cv) {
+                return response()->json([
+                    'message' => 'No Covid-19 Screening found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Covid-19 Screening retrieved successfully.',
+                'data' => $cv,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch Covid-19 Screening.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update covid 19-screening 
+    public function storeCV(Request $request)
+    {
+        try {
+            \Log::info('Incoming CV Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'             => 'required|integer',
+                'name_physician'         => 'required|string|max:255',
+                'address_health'         => 'nullable|string|max:255',
+                'tele_partner_platform'  => 'nullable|string|max:255',
+                'prior_tele_proper'      => 'required|integer',
+                'is_patient_accompanied' => 'required|integer',
+                'case_no'                => 'required|integer',
+                'name_of_companion'      => 'nullable|string|max:255',
+                'relationship'           => 'nullable|string|max:255',
+                'phone_no'               => 'nullable|string|max:255',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingCV = \App\Models\CovidScreening::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingCV) {
+                // ✅ Update the existing Covid-19 Screening
+                $existingCV->update($validated);
+
+                return response()->json([
+                    'message' => 'Covid-19 Screening updated successfully.',
+                    'data' => $existingCV,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $covidScreening = \App\Models\CovidScreening::create($validated);
+
+            return response()->json([
+                'message' => 'Covid-19 Screening saved successfully.',
+                'data' => $covidScreening,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save Covid-19 Screening.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    //fetch country list
+    public function getCountries()
+    {
+        try {
+            $countries = Countries::orderBy('en_short_name', 'asc')
+                ->get(['num_code', 'en_short_name']);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $countries
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
 
 
 

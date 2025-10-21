@@ -8,8 +8,5 @@ class DemoProfile extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
     protected $table = 'tele_demographic_profile';
-    // protected $guarded = array();
-    protected $guarded = [];
-
-    
+    protected $guarded = array();    
 }

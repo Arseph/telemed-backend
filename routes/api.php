@@ -106,7 +106,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/get-covidscreening/{meeting_id}', [TeleController::class, 'getCV']); // fetch cv 
     Route::post('/save-covidscreening', [TeleController::class, 'storeCV']); //save cv
     Route::get('/tele/countries', [TeleController::class, 'getCountries']); //fetch country list
-
+    Route::get('/get-covidassessment/{meeting_id}', [TeleController::class, 'getCA']); // fetch ca 
+    Route::post('/save-covidassessment', [TeleController::class, 'storeCA']); //save ca
 
 
 

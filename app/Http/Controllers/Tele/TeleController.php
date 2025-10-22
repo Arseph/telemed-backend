@@ -847,7 +847,7 @@ class TeleController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            \Log::error('CV Save/Update Error:', ['error' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Failed to save Covid-19 Screening.',
                 'error' => $e->getMessage(),
@@ -871,6 +871,117 @@ class TeleController extends Controller
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
+    // Get Covid-19 clinical assessment
+    public function getCA($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Clinical Assessment for meeting_id: {$meeting_id}");
+
+            $cv = \App\Models\CovidAssessment::where('meeting_id', $meeting_id)->first();
+
+            if (!$ca) {
+                return response()->json([
+                    'message' => 'No Clinical Assessment found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Clinical Assessment retrieved successfully.',
+                'data' => $ca,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch Clinical Assessment.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update clinical assessment
+    public function storeCA(Request $request)
+    {
+        try {
+            \Log::info('Incoming CA Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'                 => 'required|integer',
+                'days_14_prior_expose'       => 'required|integer',
+                'anytime_during_expose'      => 'required|integer',
+                'days_14_date_onset_illness' => 'nullable|date',
+                'name_facility'              => 'nullable|string|max:255',
+                'referral_date'              => 'nullable|date',
+                'place_quarantine'           => 'nullable|integer',
+                'quarantine_facility'        => 'nullable|string|max:255',
+                'fever'                      => 'nullable|integer',
+                'cough'                      => 'nullable|integer',
+                'colds'                      => 'nullable|integer',
+                'sore_throat'                => 'nullable|integer',
+                'diarrhea'                   => 'nullable|integer',
+                'short_breathing'            => 'nullable|integer',
+                'other_symptoms'             => 'nullable|string|max:255',
+                'history_illness'            => 'nullable|integer',
+                'history_specify'            => 'nullable|string|max:255',
+                'xray'                       => 'nullable|integer',
+                'xray_date'                  => 'nullable|date',
+                'pregnant'                   => 'nullable|integer',
+                'lmp'                        => 'nullable|string|max:255',
+                'cxr_result'                 => 'nullable|integer',
+                'radiologic_findings'        => 'nullable|string|max:255',
+                'specimen_collected'         => 'nullable|string|max:255',
+                'date_collected'             => 'nullable|date',
+                'date_sent_ritm'             => 'nullable|date',
+                'date_received_ritm'         => 'nullable|date',
+                'virus_isolation_result'     => 'nullable|string|max:255',
+                'rt_pcr_result'              => 'nullable|string|max:255',
+                'scrum'                      => 'nullable|string|max:255',
+                'oro_naso_swab'              => 'nullable|string|max:255',
+                'spe_others'                 => 'nullable|string|max:255',
+                'classification'             => 'nullable|integer',
+                'outcome_date_discharge'     => 'nullable|date',
+                'outcome_condition_discharge'=> 'nullable|integer',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingCA = \App\Models\CovidAssessment::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingCA) {
+                // ✅ Update the existing Covid-19 Screening
+                $existingCA->update($validated);
+
+                return response()->json([
+                    'message' => 'Covid-19 Screening updated successfully.',
+                    'data' => $existingCA,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $covidAssessment = \App\Models\CovidAssessment::create($validated);
+
+            return response()->json([
+                'message' => 'Covid-19 Assessment saved successfully.',
+                'data' => $covidAssessment,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save Covid-19 Screening.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

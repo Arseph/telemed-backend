@@ -30,6 +30,8 @@ use Illuminate\Support\Str;
 use App\Models\DemoProfile;
 use App\Models\ClinicalHistory;
 use App\Models\PhysicalExam;
+use App\Models\CovidScreening;
+use App\Models\CovidAssessment;
 
 
 class TeleController extends Controller
@@ -811,16 +813,58 @@ class TeleController extends Controller
 
             // ✅ Validate request data
             $validated = validator($data, [
-                'meeting_id'             => 'required|integer',
-                'name_physician'         => 'required|string|max:255',
-                'address_health'         => 'nullable|string|max:255',
-                'tele_partner_platform'  => 'nullable|string|max:255',
-                'prior_tele_proper'      => 'required|integer',
-                'is_patient_accompanied' => 'required|integer',
-                'case_no'                => 'required|integer',
-                'name_of_companion'      => 'nullable|string|max:255',
-                'relationship'           => 'nullable|string|max:255',
-                'phone_no'               => 'nullable|string|max:255',
+                'meeting_id'                     => 'required|integer',
+                'employers_name'                 => 'nullable|string|max:255',
+                'place_of_work'                  => 'nullable|string|max:255',
+                'house_bldg_name'                => 'nullable|string|max:255',
+                'street'                         => 'nullable|string|max:255',
+                'municipal'                      => 'nullable|string|max:255',
+                'province'                       => 'nullable|string|max:255',
+                'country_id'                     => 'nullable|integer',
+                'office_phone_no'                => 'nullable|string|max:50',
+                'cellphone_no'                   => 'nullable|string|max:20',
+                'history_travel_country_symptoms'=> 'nullable|integer',
+                'port_of_exit'                   => 'nullable|string|max:255',
+                'airline_sea_vessel'             => 'nullable|string|max:255',
+                'flight_vessel_no'               => 'nullable|string|max:255',
+                'date_departure'                 => 'nullable|date',
+                'date_arrival_ph'                => 'nullable|date',
+                'known_covid_case'               => 'nullable|integer',
+                'date_contact_known_covid_case ' => 'nullable|date',
+                'accomodation'                   => 'nullable|integer',
+                'acco_specify_type'              => 'nullable|string|max:255',
+                'acco_address'                   => 'nullable|string|max:255',
+                'acco_date_last_expose'          => 'nullable|date',
+                'acco_name'                      => 'nullable|string|max:255',
+                'acco_name_type'                 => 'nullable|integer',
+                'food_establishment'             => 'nullable|integer',
+                'food_es_specify_type'           => 'nullable|string|max:255',
+                'food_es_address'                => 'nullable|string|max:255',
+                'food_es_date_last_expose'       => 'nullable|date',
+                'food_es_name'                   => 'nullable|string|max:255',
+                'food_es_name_type'              => 'nullable|integer',
+                'store'                          => 'nullable|string|max:255',
+                'store_specify_type'             => 'nullable|string|max:255',
+                'store_address'                  => 'nullable|string|max:255',
+                'store_date_last_expose'         => 'nullable|date',
+                'store_name'                     => 'nullable|string|max:255',
+                'store_name_type'                => 'nullable|integer',
+                'facility'                       => 'nullable|integer',
+                'fac_specify_type'               => 'nullable|string|max:255',
+                'fac_address'                    => 'nullable|string|max:255',
+                'fac_date_last_expose'           => 'nullable|date',
+                'fac_name'                       => 'nullable|string|max:255',
+                'fac_name_type'                  => 'nullable|integer',
+                'fac_significant_other'          => 'nullable|string|max:255',
+                'event'                          => 'nullable|integer',
+                'event_specify_type'             => 'nullable|string|max:255',
+                'event_date_last_expose'         => 'nullable|date',
+                'event_place'                    => 'nullable|string|max:255',
+                'workplace'                      => 'nullable|integer',
+                'wp_company_name'                => 'nullable|string|max:255',
+                'wp_date_last_expose'            => 'nullable|date',
+                'wp_address'                     => 'nullable|string|max:255',
+                'list_name_occasion'             => 'nullable|string|max:255',
             ])->validate();
 
             // ✅ Try to find an existing record first
@@ -881,7 +925,7 @@ class TeleController extends Controller
         try {
             \Log::info("Fetching Clinical Assessment for meeting_id: {$meeting_id}");
 
-            $cv = \App\Models\CovidAssessment::where('meeting_id', $meeting_id)->first();
+            $ca = \App\Models\CovidAssessment::where('meeting_id', $meeting_id)->first();
 
             if (!$ca) {
                 return response()->json([

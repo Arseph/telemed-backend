@@ -88,6 +88,34 @@ class ManageController extends Controller
         Session::put("delete_action","Successfully delete Prescription");
     }
 
+    //prescription list
+    public function prescriptionList(Request $request)
+    {
+        $keyword = $request->keyword ?? '';
+
+        \Log::info('PrescriptionList called', ['keyword' => $keyword]);
+
+        $data = Prescription::where(function($q) use ($keyword){
+                $q->where('presc_code', 'like', "%$keyword%")
+                ->orWhere('drug_code', 'like', "%$keyword%")
+                ->orWhere('medicine_type', 'like', "%$keyword%");
+            })
+            ->where('void', 1)
+            ->orderBy('presc_code', 'asc')
+            ->get([
+                'presc_code',
+                'medicine_type',
+                'drug_code',
+                'frequency',
+                'dose_regimen',
+                'quantity'
+            ]);
+
+        \Log::info('PrescriptionList result count', ['count' => $data->count()]);
+
+        return response()->json($data);
+    }
+
     public function doctorOrder(Request $request) {
         $user = Session::get('auth');
         if($request->view_all == 'view_all')

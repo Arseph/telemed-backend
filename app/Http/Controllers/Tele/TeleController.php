@@ -32,6 +32,8 @@ use App\Models\ClinicalHistory;
 use App\Models\PhysicalExam;
 use App\Models\CovidScreening;
 use App\Models\CovidAssessment;
+use App\Models\diagnosisAssessment;
+use App\Models\PlanManagement;
 
 
 class TeleController extends Controller
@@ -451,6 +453,7 @@ class TeleController extends Controller
             'user.lname as doclname',
             'teleconsults.*',
             'pat.*',
+            'pat.id as patID',
             'teleconsults.id as meetID',
             'd.case_no as caseNO',
             'd.id as demographic_id',
@@ -1018,6 +1021,173 @@ class TeleController extends Controller
             return response()->json([
                 'message' => 'Covid-19 Assessment saved successfully.',
                 'data' => $covidAssessment,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save Covid-19 Screening.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Get diagnosis assessment
+    public function getDA($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Clinical Assessment for meeting_id: {$meeting_id}");
+
+            $da = \App\Models\DiagnosisAssessment::where('meeting_id', $meeting_id)->first();
+
+            if (!$da) {
+                return response()->json([
+                    'message' => 'No Clinical Assessment found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Clinical Assessment retrieved successfully.',
+                'data' => $da,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch Clinical Assessment.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update diagnosis assessment
+    public function storeDA(Request $request)
+    {
+        try {
+            \Log::info('Incoming DA Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'                 => 'required|integer',
+                'patient_id'                 => 'required|integer',
+                'summary_assess'             => 'required|string|max:255',
+                'diagnosis'                  => 'required|string|max:255',
+                'clinical_classification'    => 'required|integer',
+                'if_covid'                   => 'nullable|integer',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingDA = \App\Models\DiagnosisAssessment::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingDA) {
+                // ✅ Update the existing Covid-19 Screening
+                $existingDA->update($validated);
+
+                return response()->json([
+                    'message' => 'Covid-19 Screening updated successfully.',
+                    'data' => $existingDA,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $diagnosisAssessment = \App\Models\DiagnosisAssessment::create($validated);
+
+            return response()->json([
+                'message' => 'Covid-19 Assessment saved successfully.',
+                'data' => $diagnosisAssessment,
+                'status' => 'created',
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Save/Update Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to save Covid-19 Screening.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Get plan of management
+    public function getPM($meeting_id)
+    {
+        try {
+            \Log::info("Fetching Clinical Assessment for meeting_id: {$meeting_id}");
+
+            $pm = \App\Models\PlanManagement::where('meeting_id', $meeting_id)->first();
+
+            if (!$pm) {
+                return response()->json([
+                    'message' => 'No Clinical Assessment found for this meeting.',
+                    'data' => null,
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Clinical Assessment retrieved successfully.',
+                'data' => $pm,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('DP Fetch Error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to fetch Clinical Assessment.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Store / Update plan of management
+    public function storePM(Request $request)
+    {
+        try {
+            \Log::info('Incoming PM Request:', $request->all());
+
+            // ✅ Convert empty strings to null to avoid validation issues
+            $data = collect($request->all())->map(function ($value) {
+                return $value === '' ? null : $value;
+            })->toArray();
+
+            // ✅ Validate request data
+            $validated = validator($data, [
+                'meeting_id'                 => 'required|integer',
+                'plan_management'            => 'required|string|max:255',
+                'prescription'               => 'required|string|max:255',
+                'referral'                   => 'required|string|max:255',
+                'disposition'                => 'required|string|max:255',
+                'name_physician'             => 'required|string|max:255',
+                // 'signature'               => 'required|string|max:255',
+                'license_no'                 => 'required|string|max:50',
+                'prof_tax_receipt'           => 'required|string|max:255',
+            ])->validate();
+
+            // ✅ Try to find an existing record first
+            $existingPM = \App\Models\PlanManagement::where('meeting_id', $validated['meeting_id'])->first();
+
+            if ($existingPM) {
+                // ✅ Update the existing Covid-19 Screening
+                $existingPM->update($validated);
+
+                return response()->json([
+                    'message' => 'Covid-19 Screening updated successfully.',
+                    'data' => $existingPM,
+                    'status' => 'updated',
+                ], 200);
+            }
+
+            // ✅ Otherwise, create a new one
+            $planManagement = \App\Models\PlanManagement::create($validated);
+
+            return response()->json([
+                'message' => 'Covid-19 Assessment saved successfully.',
+                'data' => $planManagement,
                 'status' => 'created',
             ], 201);
 

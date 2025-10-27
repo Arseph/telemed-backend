@@ -112,6 +112,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/save-diagnosisassessment', [TeleController::class, 'storeDA']); //save da
     Route::get('/get-planofmanagement/{meeting_id}', [TeleController::class, 'getPM']); // fetch pm
     Route::post('/save-planofmanagement', [TeleController::class, 'storePM']); //save pm
+    Route::get('/get-prescriptions', [TeleController::class, 'prescriptionList']); //presctiption list
 
 
 
@@ -131,7 +132,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/patient-accept/{id}', [DoctorPatientController::class, 'acceptPatient']);
     Route::post('/patient-consult-info/{id}', [DoctorPatientController::class, 'patientConsultInfo']);
     Route::get('/tele-details', [DoctorPatientController::class, 'teleDetails']);
-    Route::get('/api/prescriptions', [DoctorManageController::class, 'prescriptionList']); //presctiption list
     Route::match(['GET', 'POST'], 'doctor/prescription', [DoctorManageController::class, 'prescription']);
     Route::post('/prescription-store', [DoctorManageController::class, 'prescriptionStore']);
     Route::post('/prescription-delete/{id}', [DoctorManageController::class, 'prescriptionDelete']);

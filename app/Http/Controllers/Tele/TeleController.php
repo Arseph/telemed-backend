@@ -36,6 +36,7 @@ use App\Models\diagnosisAssessment;
 use App\Models\PlanManagement;
 
 
+
 class TeleController extends Controller
 {
     public function index(Request $request)
@@ -1199,6 +1200,48 @@ class TeleController extends Controller
             ], 500);
         }
     }
+
+    
+    //prescription list
+    public function prescriptionList(Request $request)
+    {
+        try {
+            $keyword = $request->keyword ?? '';
+
+            \Log::info('➡️ Entered prescriptionList()', ['keyword' => $keyword]);
+
+            $data = Prescription::with('drugmed') // include relation for drug name
+                ->where(function($q) use ($keyword) {
+                    $q->where('presc_code', 'like', "%$keyword%")
+                    ->orWhere('drug_id', 'like', "%$keyword%")
+                    ->orWhere('type_of_medicine', 'like', "%$keyword%");
+                })
+                // ->where('void', 1)
+                ->orderBy('presc_code', 'asc')
+                ->get()
+                ->map(function ($presc) {
+                    return [
+                        'presc_code'    => $presc->presc_code,
+                        'type_of_medicine' => $presc->type_med(),   // ✅ from model
+                        'drugcode' => optional($presc->drugmed)->drugcode,
+                        'frequency'     => $presc->freq(),       // ✅ from model
+                        'dose_regimen'  => $presc->dose_reg(),   // ✅ from model
+                        'total_qty'      => $presc->total_qty,
+                    ];
+                });
+
+            \Log::info('✅ PrescriptionList result count', ['count' => $data->count()]);
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            \Log::error('❌ Error in prescriptionList(): '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
 
 
 

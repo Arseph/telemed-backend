@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
+use App\Services\TeleFormsStoreFetchService;
 use App\Models\DemoProfile;
 use App\Models\ClinicalHistory;
 use App\Models\PhysicalExam;
@@ -34,7 +35,6 @@ use App\Models\CovidScreening;
 use App\Models\CovidAssessment;
 use App\Models\diagnosisAssessment;
 use App\Models\PlanManagement;
-use App\Services\TeleFormsStoreFetchService;
 
 
 
@@ -491,149 +491,87 @@ class TeleController extends Controller
     }
 
     //tele forms
-    protected $fetchService;
-
+    //use custom app service
     public function __construct(TeleFormsStoreFetchService $fetchService)
     {
         $this->fetchService = $fetchService;
-    }
-    // ------------------ Helpers ------------------
-    private function saveResource(Request $request, string $modelClass, string $resourceName)
-    {
-        try {
-            \Log::info("Incoming {$resourceName} Request:", $request->all());
-
-            // Convert empty strings to null
-            $data = collect($request->all())->map(fn($v) => $v === '' ? null : $v)->toArray();
-
-            // Validate meeting_id exists
-            if (!isset($data['meeting_id'])) {
-                return response()->json([
-                    'message' => "{$resourceName} requires meeting_id",
-                ], 422);
-            }
-
-            // ✅ Use the injected service instance
-            $result = $this->fetchService->saveOrUpdate($modelClass, $data);
-
-            return response()->json([
-                'message' => "{$resourceName} saved successfully.",
-                'data' => $result['record'],
-                'status' => $result['status'],
-            ], $result['status'] === 'created' ? 201 : 200);
-
-        } catch (\Exception $e) {
-            \Log::error("{$resourceName} Save/Update Error:", ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => "Failed to save {$resourceName}.",
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    private function getResource(string $modelClass, int $meeting_id, string $resourceName)
-    {
-        try {
-            \Log::info("Fetching {$resourceName} for meeting_id: {$meeting_id}");
-
-            $record = $modelClass::where('meeting_id', $meeting_id)->first();
-
-            if (!$record) {
-                return response()->json([
-                    'message' => "No {$resourceName} found for this meeting.",
-                    'data' => null,
-                ], 200);
-            }
-
-            return response()->json([
-                'message' => "{$resourceName} retrieved successfully.",
-                'data' => $record,
-            ], 200);
-
-        } catch (\Exception $e) {
-            \Log::error("{$resourceName} Fetch Error:", ['error' => $e->getMessage()]);
-            return response()->json([
-                'message' => "Failed to fetch {$resourceName}.",
-                'error' => $e->getMessage(),
-            ], 500);
-        }
     }
 
     // ------------------ Demographic Profile ------------------
     public function getDP($meeting_id)
     {
-        return $this->getResource(DemoProfile::class, $meeting_id, 'Demographic Profile');
+        return $this->fetchService->getTeleform(DemoProfile::class, $meeting_id, 'Demographic Profile');
     }
 
     public function storeDP(Request $request)
     {
-        return $this->saveResource($request, DemoProfile::class, 'Demographic Profile');
+        return $this->fetchService->storeTeleform($request, DemoProfile::class, 'Demographic Profile');
     }
 
     // ------------------ Clinical History ------------------
     public function getCH($meeting_id)
     {
-        return $this->getResource(ClinicalHistory::class, $meeting_id, 'Clinical History');
+        return $this->fetchService->getTeleform(ClinicalHistory::class, $meeting_id, 'Clinical History');
     }
 
     public function storeCH(Request $request)
     {
-        return $this->saveResource($request, ClinicalHistory::class, 'Clinical History');
+        return $this->fetchService->storeTeleform($request, ClinicalHistory::class, 'Clinical History');
     }
 
     // ------------------ Physical Exam ------------------
     public function getPE($meeting_id)
     {
-        return $this->getResource(PhysicalExam::class, $meeting_id, 'Physical Exam');
+        return $this->fetchService->getTeleform(PhysicalExam::class, $meeting_id, 'Physical Exam');
     }
 
     public function storePE(Request $request)
     {
-        return $this->saveResource($request, PhysicalExam::class, 'Physical Exam');
+        return $this->fetchService->storeTeleform($request, PhysicalExam::class, 'Physical Exam');
     }
 
     // ------------------ Covid-19 Screening ------------------
     public function getCV($meeting_id)
     {
-        return $this->getResource(CovidScreening::class, $meeting_id, 'Covid-19 Screening');
+        return $this->fetchService->getTeleform(CovidScreening::class, $meeting_id, 'Covid-19 Screening');
     }
 
     public function storeCV(Request $request)
     {
-        return $this->saveResource($request, CovidScreening::class, 'Covid-19 Screening');
+        return $this->fetchService->storeTeleform($request, CovidScreening::class, 'Covid-19 Screening');
     }
 
     // ------------------ Clinical Assessment ------------------
     public function getCA($meeting_id)
     {
-        return $this->getResource(CovidAssessment::class, $meeting_id, 'Clinical Assessment');
+        return $this->fetchService->getTeleform(CovidAssessment::class, $meeting_id, 'Clinical Assessment');
     }
 
     public function storeCA(Request $request)
     {
-        return $this->saveResource($request, CovidAssessment::class, 'Clinical Assessment');
+        return $this->fetchService->storeTeleform($request, CovidAssessment::class, 'Clinical Assessment');
     }
 
     // ------------------ Diagnosis Assessment ------------------
     public function getDA($meeting_id)
     {
-        return $this->getResource(DiagnosisAssessment::class, $meeting_id, 'Diagnosis Assessment');
+        return $this->fetchService->getTeleform(DiagnosisAssessment::class, $meeting_id, 'Diagnosis Assessment');
     }
 
     public function storeDA(Request $request)
     {
-        return $this->saveResource($request, DiagnosisAssessment::class, 'Diagnosis Assessment');
+        return $this->fetchService->storeTeleform($request, DiagnosisAssessment::class, 'Diagnosis Assessment');
     }
 
     // ------------------ Plan of Management ------------------
     public function getPM($meeting_id)
     {
-        return $this->getResource(PlanManagement::class, $meeting_id, 'Plan of Management');
+        return $this->fetchService->getTeleform(PlanManagement::class, $meeting_id, 'Plan of Management');
     }
 
     public function storePM(Request $request)
     {
-        return $this->saveResource($request, PlanManagement::class, 'Plan of Management');
+        return $this->fetchService->storeTeleform($request, PlanManagement::class, 'Plan of Management');
     }
 
     // ------------------ Auxiliary ------------------

@@ -208,6 +208,24 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/create-meeting', [TeleController::class, 'createMeeting']);
     Route::get('/get-prescription-details', [TeleController::class, 'getPrescription']);
     Route::post('/decline-tele/{id}', [TeleController::class, 'declineTele']);
+    //new controller routes for forms
+    Route::get('/get-demoprofile/{meeting_id}', [TeleController::class, 'getDP']); // fetch DP 
+    Route::post('/save-demoprofile', [TeleController::class, 'storeDP']); //save dp
+    Route::get('/get-clinicalhistory/{meeting_id}', [TeleController::class, 'getCH']); // fetch ch 
+    Route::post('/save-clinicalhistory', [TeleController::class, 'storeCH']); //save ch
+    Route::get('/get-physicalexam/{meeting_id}', [TeleController::class, 'getPE']); // fetch pe 
+    Route::post('/save-physicalexam', [TeleController::class, 'storePE']); //save pe
+    Route::get('/tele/facilities', [TeleController::class, 'getFacilities']); //fetch facility list
+    Route::get('/get-covidscreening/{meeting_id}', [TeleController::class, 'getCV']); // fetch cv 
+    Route::post('/save-covidscreening', [TeleController::class, 'storeCV']); //save cv
+    Route::get('/tele/countries', [TeleController::class, 'getCountries']); //fetch country list
+    Route::get('/get-covidassessment/{meeting_id}', [TeleController::class, 'getCA']); // fetch ca 
+    Route::post('/save-covidassessment', [TeleController::class, 'storeCA']); //save ca
+    Route::get('/get-diagnosisassessment/{meeting_id}', [TeleController::class, 'getDA']); // fetch da
+    Route::post('/save-diagnosisassessment', [TeleController::class, 'storeDA']); //save da
+    Route::get('/get-planofmanagement/{meeting_id}', [TeleController::class, 'getPM']); // fetch pm
+    Route::post('/save-planofmanagement', [TeleController::class, 'storePM']); //save pm
+    Route::get('/get-prescriptions', [TeleController::class, 'prescriptionList']); //presctiption list
 
     //NEW
     Route::get('/enter-consult', [TeleController::class, 'enterConsult']);
@@ -219,3 +237,4 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/notif-patient-info/{id}', [NotiFController::class, 'patientInfo']);
     Route::post('/notif-patient-accept/{id}', [NotiFController::class, 'patientAccept']);
 });
+

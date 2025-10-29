@@ -11,7 +11,8 @@ class Prescription extends Model implements Auditable
     protected $guarded = array();
 
     public function drugmed() {
-        return $this->hasOne(DrugsMeds::class, 'id', 'drug_id');
+        return $this->hasOne(DrugsMeds::class, 'id', 'drug_id')
+                    ->select('id', 'drugcode'); // to get drug code
     }
 
     public function prescribe() {

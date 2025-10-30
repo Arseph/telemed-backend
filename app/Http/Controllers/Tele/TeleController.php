@@ -458,23 +458,23 @@ class TeleController extends Controller
             'pat.*',
             'pat.id as patID',
             'teleconsults.id as meetID',
-            'd.case_no as caseNO',
-            'd.id as demographic_id',
-            'ch.id as clinical_id',
-            'pe.*',
-            'pe.id as phy_id',
-            'cs.id as covidscreen_id',
-            'csa.id as covidassess_id',
-            'das.id as diagassess_id',
+            // 'd.case_no as caseNO',
+            // 'd.id as demographic_id',
+            // 'ch.id as clinical_id',
+            // 'pe.*',
+            // 'pe.id as phy_id',
+            // 'cs.id as covidscreen_id',
+            // 'csa.id as covidassess_id',
+            // 'das.id as diagassess_id',
             'fac.facilityname as FacName'
         )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
             ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
-            ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
+            // ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
             ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
             ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
             ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
@@ -489,6 +489,70 @@ class TeleController extends Controller
 
         return json_encode($meeting);
     }
+
+    // public function meetingInfo(Request $req)
+    // {
+    //     $meeting = Teleconsult::select(
+    //         'brgyp.brg_name as pbrgyname',
+    //         'munp.muni_name as pmuniname',
+    //         'provp.prov_name as pprov',
+    //         'brgy.brg_name as brgyname',
+    //         'mun.muni_name as muniname',
+    //         'reg.reg_desc as regname',
+    //         'prov.prov_name as provname',
+    //         'user.fname as docfname',
+    //         'user.mname as docmname',
+    //         'user.lname as doclname',
+    //         'teleconsults.*',
+    //         'pat.*',
+    //         'pat.id as patID',
+    //         'teleconsults.id as meetID',
+    //         'd.case_no as caseNO',
+    //         'd.id as demographic_id',
+    //         'ch.id as clinical_id',
+    //         'pe.*',
+    //         'pe.id as phy_id',
+    //         'cs.id as covidscreen_id',
+    //         'csa.id as covidassess_id',
+    //         'das.id as diagassess_id',
+    //         'fac.facilityname as FacName'
+    //     )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
+    //         ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
+    //         ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
+    //         ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
+    //         ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
+    //         ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
+    //         ->leftJoin('municipal_cities as mun','mun.muni_psgc','=', 'fac.muni_psgc')
+    //         ->leftJoin('barangays as brgy','brgy.brg_psgc','=', 'fac.brgy_psgc')
+    //         //patient full address
+    //         ->leftJoin('provinces as provp','provp.prov_psgc','=', 'pat.province')
+    //         ->leftJoin('municipal_cities as munp','munp.muni_psgc','=', 'pat.muncity')
+    //         ->leftJoin('barangays as brgyp','brgyp.brg_psgc','=', 'pat.brgy')
+    //         ->where('teleconsults.id', $req->meet_id)
+    //         ->first();
+
+
+    //         //         👇 Add this line to inspect what you get
+    //                 dd($meeting);
+
+    //             if ($meeting->phyexam) {
+    //                 $conjunctiva = $meeting->phyexam->conjunctiva;
+    //                 $neck = $meeting->phyexam->neck;
+    //                 $breast = $meeting->phyexam->breast;
+    //                 $thorax = $meeting->phyexam->thorax;
+    //                 $abdomen = $meeting->phyexam->abdomen;
+    //                 $genitals = $meeting->phyexam->genitals;
+    //                 $extremities = $meeting->phyexam->extremities;
+    //             }
+
+
+    //     return json_encode($meeting);
+    // }
 
     //tele forms
     //use custom app service
@@ -652,53 +716,6 @@ class TeleController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
-
-
-
-
-
-
-    // public function meetingInfo(Request $req)
-    // {
-    //     $meeting = Teleconsult::select(
-    //         'teleconsults.*',
-    //         'pat.*',
-    //         'teleconsults.id as meetID',
-    //         'd.case_no as caseNO',
-    //         'd.id as demographic_id',
-    //         'ch.id as clinical_id',
-    //         'pe.id as phy_id',
-    //         'cs.id as covidscreen_id',
-    //         'csa.id as covidassess_id',
-    //         'das.id as diagassess_id',
-    //         'fac.facilityname as FacName'
-    //     )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-    //         ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
-    //         ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
-    //         ->where('teleconsults.id', $req->meet_id)
-    //         ->first();
-            
-    //         👇 Add this line to inspect what you get
-    //         dd($meeting);
-
-    //     if ($meeting->phyexam) {
-    //         $conjunctiva = $meeting->phyexam->conjunctiva;
-    //         $neck = $meeting->phyexam->neck;
-    //         $breast = $meeting->phyexam->breast;
-    //         $thorax = $meeting->phyexam->thorax;
-    //         $abdomen = $meeting->phyexam->abdomen;
-    //         $genitals = $meeting->phyexam->genitals;
-    //         $extremities = $meeting->phyexam->extremities;
-    //     }
-
-    //     return json_encode($meeting);
-    // }
 
     public function getPendingMeeting($id)
     {

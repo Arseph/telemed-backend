@@ -6,6 +6,9 @@ use App\Events\AcDecReq;
 use App\Helpers\PusherHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Countries;
+use App\Models\Region;
+use App\Models\Province;
+use App\Models\Barangay;
 use App\Models\Doc_Type;
 use App\Models\DocCategory;
 use App\Models\DocOrderLabReq;
@@ -487,57 +490,7 @@ class TeleController extends Controller
             ->where('teleconsults.id', $req->meet_id)
             ->first();
 
-        return json_encode($meeting);
-    }
-
-    // public function meetingInfo(Request $req)
-    // {
-    //     $meeting = Teleconsult::select(
-    //         'brgyp.brg_name as pbrgyname',
-    //         'munp.muni_name as pmuniname',
-    //         'provp.prov_name as pprov',
-    //         'brgy.brg_name as brgyname',
-    //         'mun.muni_name as muniname',
-    //         'reg.reg_desc as regname',
-    //         'prov.prov_name as provname',
-    //         'user.fname as docfname',
-    //         'user.mname as docmname',
-    //         'user.lname as doclname',
-    //         'teleconsults.*',
-    //         'pat.*',
-    //         'pat.id as patID',
-    //         'teleconsults.id as meetID',
-    //         'd.case_no as caseNO',
-    //         'd.id as demographic_id',
-    //         'ch.id as clinical_id',
-    //         'pe.*',
-    //         'pe.id as phy_id',
-    //         'cs.id as covidscreen_id',
-    //         'csa.id as covidassess_id',
-    //         'das.id as diagassess_id',
-    //         'fac.facilityname as FacName'
-    //     )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-    //         ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
-    //         ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
-    //         ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
-    //         ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
-    //         ->leftJoin('municipal_cities as mun','mun.muni_psgc','=', 'fac.muni_psgc')
-    //         ->leftJoin('barangays as brgy','brgy.brg_psgc','=', 'fac.brgy_psgc')
-    //         //patient full address
-    //         ->leftJoin('provinces as provp','provp.prov_psgc','=', 'pat.province')
-    //         ->leftJoin('municipal_cities as munp','munp.muni_psgc','=', 'pat.muncity')
-    //         ->leftJoin('barangays as brgyp','brgyp.brg_psgc','=', 'pat.brgy')
-    //         ->where('teleconsults.id', $req->meet_id)
-    //         ->first();
-
-
-    //         //         👇 Add this line to inspect what you get
+    //         //👇 Add this line to inspect what you get
     //                 dd($meeting);
 
     //             if ($meeting->phyexam) {
@@ -551,8 +504,8 @@ class TeleController extends Controller
     //             }
 
 
-    //     return json_encode($meeting);
-    // }
+        return json_encode($meeting);
+    }
 
     //tele forms
     //use custom app service
@@ -662,7 +615,7 @@ class TeleController extends Controller
     {
         try {
             $countries = Countries::orderBy('en_short_name', 'asc')
-                ->get(['num_code', 'en_short_name']);
+                ->get(['num_code', 'en_short_name', 'nationality']);
 
             return response()->json([
                 'status' => 'success',
@@ -677,6 +630,54 @@ class TeleController extends Controller
         }
     }
 
+    public function getRegions()
+    {
+        try {
+            $regions = Region::orderBy('reg_desc', 'asc')
+                ->get(['reg_psgc', 'reg_desc', 'reg_code']);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $regions
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
+    public function getProvinces()
+    {
+        try {
+            $provinces = Province::orderBy('prov_name')->get(['prov_code', 'prov_name', 'prov_psgc']);
+            return response()->json(['status' => 'success', 'data' => $provinces]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
+
+    public function getMunicipalCities()
+    {
+        try {
+            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode']);
+            return response()->json(['status' => 'success', 'data' => $cities]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
+
+    public function getBarangays()
+    {
+        try {
+            $barangays = Barangay::orderBy('brg_name')->get(['brg_psgc', 'brg_name']);
+            return response()->json(['status' => 'success', 'data' => $barangays]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
     
     //prescription list
     public function prescriptionList(Request $request)

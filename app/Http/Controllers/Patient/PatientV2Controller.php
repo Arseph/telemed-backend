@@ -35,12 +35,12 @@ class PatientV2Controller extends Controller
      */
     public function index(Request $request)
     {
-        // ✅ Include 'barangay' relationship
+        //Include eloquent relationship
         $query = PatientV2::query()
             ->with(['account', 'meeting', 'barangay'])
             ->orderBy('id', 'desc');
 
-        // ✅ Optional search filter
+        //Optional search filter
         if ($request->has('search') && $request->search !== '') {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -88,42 +88,56 @@ class PatientV2Controller extends Controller
         }
     }
 
-    /**
-     * Store or update a patient record (Upsert).
-     */
-
+    //upsert
     public function storeOrUpdate(Request $request)
     {
-        $patientId = $request->input('id'); // or master_patient_perm_id if that is your unique key
+        $patientId = $request->input('id'); 
 
         if ($patientId) {
-            // Try to find existing patient
-            $patient = PatientV2::find($patientId);
-
-            if (!$patient) {
-                // If not found, create new
-                $patient = new PatientV2();
-            }
+            $patient = PatientV2::find($patientId) ?? new PatientV2();
         } else {
-            // No ID sent → create new
             $patient = new PatientV2();
         }
 
-        // Fill patient attributes from request
-        $patient->fill($request->all());
+        // Handle image upload
+        if ($request->hasFile('pat_image') && $request->file('pat_image')->isValid()) {
+            $destinationPath = public_path('images/profilepictures');
+
+            // Make directory if it doesn't exist
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // delete old image if exists
+            if ($patient->pat_image && file_exists(public_path($patient->pat_image))) {
+                @unlink(public_path($patient->pat_image));
+            }
+
+            // Create unique filename
+            $filename = time() . '_' . uniqid() . '.' . $request->file('pat_image')->getClientOriginalExtension();
+
+            // Move uploaded file to /public/images/profilepictures
+            $request->file('pat_image')->move($destinationPath, $filename);
+
+            // Save relative path (for frontend use)
+            $relativePath = 'images/profilepictures/' . $filename;
+            $patient->pat_image = $relativePath;
+        }
+
+        // Fill all other fields except pat_image
+        $patient->fill($request->except(['pat_image']));
 
         // System-managed fields
         $patient->userid = auth()->id() ?? null;
         $patient->date_updated = now()->toDateString();
         $patient->time_updated = now()->toTimeString();
 
-        // Only set entered date/time if new
+        // Set entered date/time if new
         if (!$patient->exists) {
             $patient->date_entered = now()->toDateString();
             $patient->time_entered = now()->toTimeString();
         }
 
-        // Save
         $patient->save();
 
         return response()->json([
@@ -132,7 +146,6 @@ class PatientV2Controller extends Controller
             'data' => $patient,
         ]);
     }
-
 
 
 

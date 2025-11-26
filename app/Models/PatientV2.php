@@ -26,10 +26,12 @@ class PatientV2 extends Model implements Auditable
     public function meeting() {
         return $this->hasOne(PendingMeeting::class, 'patient_id', 'id');
     }
+    
     public function allmeetings() {
         return $this->hasMany(Meeting::class, 'patient_id', 'id');
     }
-    public function relgion() {
+
+    public function religion() {
         switch ($this->religion_code) {
             case 'AGLIP':
             return 'AGLIPAY';

@@ -37,7 +37,7 @@ class PatientV2Controller extends Controller
     {
         //Include eloquent relationship
         $query = PatientV2::query()
-            ->with(['account', 'meeting', 'barangay'])
+            ->with(['account', 'meeting', 'barangay', 'allmeetings.doctor.doccat'])
             ->orderBy('id', 'desc');
 
         //Optional search filter

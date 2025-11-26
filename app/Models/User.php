@@ -67,4 +67,7 @@ class User extends Authenticatable implements Auditable
     public function zoom() {
         return $this->hasOne(ZoomCredential::class, 'doctor_id', 'id');
     }
+    public function doccat() {
+        return $this->hasOne(DocCategory::class, 'id', 'doc_cat_id');
+    }
 }

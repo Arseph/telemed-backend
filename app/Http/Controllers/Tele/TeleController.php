@@ -6,6 +6,9 @@ use App\Events\AcDecReq;
 use App\Helpers\PusherHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Countries;
+use App\Models\Region;
+use App\Models\Province;
+use App\Models\Barangay;
 use App\Models\Doc_Type;
 use App\Models\DocCategory;
 use App\Models\DocOrderLabReq;
@@ -26,6 +29,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 use App\Services\TeleFormsStoreFetchService;
 use App\Models\DemoProfile;
@@ -36,7 +40,7 @@ use App\Models\CovidAssessment;
 use App\Models\diagnosisAssessment;
 use App\Models\PlanManagement;
 
-
+use App\Models\PatientV2;
 
 
 class TeleController extends Controller
@@ -50,14 +54,14 @@ class TeleController extends Controller
             'teleconsults.id as meetID',
             'teleconsults.user_id as Creator',
             'teleconsults.doctor_id as RequestTo',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-            'pat.dob as dob',
-            'pat.sex as sex',
-            'pat.civil_status as civil_status',
+            'pat.pat_lname as patLname',
+            'pat.pat_fname as patFname',
+            'pat.pat_mname as patMname',
+            'pat.pat_birthDate as dob',
+            'pat.sex_code as sex',
+            'pat.civil_stat_code as civil_status',
             'pat.id as PatID',
-        )->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[1]));
@@ -75,15 +79,15 @@ class TeleController extends Controller
             ->orderBy('teleconsults.date_meeting', 'asc')
             ->get();
         $data->load('encoded.facility');
-        $patients = Patient::select(
-            'patients.*',
+        $patients = PatientV2::select(
+            'tbl_master_patient.*',
             'bar.brg_name as barangay',
-            'user.email as email',
-            'user.username as username',
-        )->leftJoin('barangays as bar', 'bar.brg_psgc', '=', 'patients.brgy')
-            ->leftJoin('users as user', 'user.id', '=', 'patients.account_id')
-            ->where('patients.doctor_id', $user->id)
-            ->orderby('patients.lname', 'asc')
+            // 'user.email as email',
+            // 'user.username as username',
+        )->leftJoin('barangays as bar', DB::raw("CAST(bar.brg_psgc AS CHAR)"), '=', 'tbl_master_patient.bgycode')
+            // ->leftJoin('users as user', 'user.id', '=', 'tbl_master_patient.account_id')
+            // ->where('tbl_master_patient.userid', $user->id)
+            ->orderby('tbl_master_patient.pat_lname', 'asc')
             ->get();
 
         $keyword_past = $request->view_all_past ? '' : $request->date_range_past;
@@ -92,11 +96,11 @@ class TeleController extends Controller
             'teleconsults.id as meetID',
             'teleconsults.user_id as Creator',
             'teleconsults.doctor_id as RequestTo',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
+            'pat.pat_lname as patLname',
+            'pat.pat_fname as patFname',
+            'pat.pat_mname as patMname',
             'pat.id as PatID',
-        )->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword_past) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range_past)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range_past)[1]));
@@ -117,10 +121,10 @@ class TeleController extends Controller
             'pending_meetings.*',
             'pending_meetings.id as meetID',
             'pending_meetings.created_at as reqDate',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-        )->leftJoin('patients as pat', 'pending_meetings.patient_id', '=', 'pat.id');
+            'pat.pat_lname as patLname',
+            'pat.pat_fname as patFname',
+            'pat.pat_mname as patMname',
+        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id');
         if ($keyword_req) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range_req)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range_req)[1]));
@@ -145,10 +149,10 @@ class TeleController extends Controller
             'pending_meetings.*',
             'pending_meetings.id as meetID',
             'pending_meetings.created_at as reqDate',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-        )->leftJoin('patients as pat', 'pending_meetings.patient_id', '=', 'pat.id')
+            'pat.pat_lname as patLname',
+            'pat.pat_fname as patFname',
+            'pat.pat_mname as patMname',
+        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')
             ->where('pending_meetings.user_id', '=', $user->id)
             ->orderBy('pending_meetings.id', 'desc')
             ->get();
@@ -158,7 +162,7 @@ class TeleController extends Controller
             'pending_meetings.*',
             'pending_meetings.id as meetID',
             'pending_meetings.created_at as reqDate',
-        )->leftJoin('patients as pat', 'pending_meetings.patient_id', '=', 'pat.id')
+        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')
             ->where('pending_meetings.status', 'Pending')
             ->where('pending_meetings.doctor_id', '=', $user->id)->count();
         $telecat = DocCategory::orderBy('category_name', 'asc')->get();
@@ -172,14 +176,14 @@ class TeleController extends Controller
             'teleconsults.id as meetID',
             'teleconsults.user_id as Creator',
             'teleconsults.doctor_id as RequestTo',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-            'pat.dob as dob',
-            'pat.sex as sex',
-            'pat.civil_status as civil_status',
+            'pat.pat_lname as patLname',
+            'pat.pat_fname as patFname',
+            'pat.pat_mname as patMname',
+            'pat.pat_birthDate as dob',
+            'pat.sex_code as sex',
+            'pat.civil_stat_code as civil_status',
             'pat.id as PatID',
-        )->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[1]));
@@ -444,13 +448,16 @@ class TeleController extends Controller
     public function meetingInfo(Request $req)
     {
         $meeting = Teleconsult::select(
+            //patient
             'brgyp.brg_name as pbrgyname',
             'munp.muni_name as pmuniname',
             'provp.prov_name as pprov',
+            //user/doc
             'brgy.brg_name as brgyname',
             'mun.muni_name as muniname',
             'reg.reg_desc as regname',
             'prov.prov_name as provname',
+            //doc
             'user.fname as docfname',
             'user.mname as docmname',
             'user.lname as doclname',
@@ -458,37 +465,40 @@ class TeleController extends Controller
             'pat.*',
             'pat.id as patID',
             'teleconsults.id as meetID',
-            'd.case_no as caseNO',
-            'd.id as demographic_id',
-            'ch.id as clinical_id',
-            'pe.*',
-            'pe.id as phy_id',
-            'cs.id as covidscreen_id',
-            'csa.id as covidassess_id',
-            'das.id as diagassess_id',
+            'fac.id as facID',
             'fac.facilityname as FacName'
-        )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-            ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
-            ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
-            ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
+        )->leftJoin('tbl_master_patient as pat', 'pat.id', '=', 'teleconsults.patient_id')
+            ->leftJoin('pending_meetings as pmeet', 'pmeet.meet_id', '=', 'teleconsults.id')
+            ->leftJoin('facilities as fac', 'fac.id', '=', 'pmeet.facility_id')
+            ->leftJoin('users as user', 'user.id', '=', 'pat.userid')
             ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
             ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
             ->leftJoin('municipal_cities as mun','mun.muni_psgc','=', 'fac.muni_psgc')
             ->leftJoin('barangays as brgy','brgy.brg_psgc','=', 'fac.brgy_psgc')
             //patient full address
-            ->leftJoin('provinces as provp','provp.prov_psgc','=', 'pat.province')
-            ->leftJoin('municipal_cities as munp','munp.muni_psgc','=', 'pat.muncity')
-            ->leftJoin('barangays as brgyp','brgyp.brg_psgc','=', 'pat.brgy')
+            ->leftJoin('provinces as provp', DB::raw('CAST(provp.prov_code AS CHAR)'), '=', 'pat.provcode')
+            ->leftJoin('municipal_cities as munp', DB::raw('CAST(munp.zipcode AS CHAR)'), '=', 'pat.citycode')
+            ->leftJoin('barangays as brgyp', 'brgyp.brg_psgc', '=', DB::raw('CAST(pat.bgycode AS UNSIGNED)'))
             ->where('teleconsults.id', $req->meet_id)
             ->first();
 
+    //         //👇 Add this line to inspect what you get
+    //                 dd($meeting);
+
+    //             if ($meeting->phyexam) {
+    //                 $conjunctiva = $meeting->phyexam->conjunctiva;
+    //                 $neck = $meeting->phyexam->neck;
+    //                 $breast = $meeting->phyexam->breast;
+    //                 $thorax = $meeting->phyexam->thorax;
+    //                 $abdomen = $meeting->phyexam->abdomen;
+    //                 $genitals = $meeting->phyexam->genitals;
+    //                 $extremities = $meeting->phyexam->extremities;
+    //             }
+
+
         return json_encode($meeting);
     }
+
 
     //tele forms
     //use custom app service
@@ -598,7 +608,7 @@ class TeleController extends Controller
     {
         try {
             $countries = Countries::orderBy('en_short_name', 'asc')
-                ->get(['num_code', 'en_short_name']);
+                ->get(['num_code', 'en_short_name', 'nationality']);
 
             return response()->json([
                 'status' => 'success',
@@ -613,6 +623,54 @@ class TeleController extends Controller
         }
     }
 
+    public function getRegions()
+    {
+        try {
+            $regions = Region::orderBy('reg_desc', 'asc')
+                ->get(['reg_psgc', 'reg_desc', 'reg_code']);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $regions
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
+    public function getProvinces()
+    {
+        try {
+            $provinces = Province::orderBy('prov_name')->get(['prov_code', 'prov_name', 'prov_psgc']);
+            return response()->json(['status' => 'success', 'data' => $provinces]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
+
+    public function getMunicipalCities()
+    {
+        try {
+            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode']);
+            return response()->json(['status' => 'success', 'data' => $cities]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
+
+    public function getBarangays()
+    {
+        try {
+            $barangays = Barangay::orderBy('brg_name')->get(['brg_psgc', 'brg_name']);
+            return response()->json(['status' => 'success', 'data' => $barangays]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
+        }
+    }
     
     //prescription list
     public function prescriptionList(Request $request)
@@ -652,53 +710,6 @@ class TeleController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
-
-
-
-
-
-
-    // public function meetingInfo(Request $req)
-    // {
-    //     $meeting = Teleconsult::select(
-    //         'teleconsults.*',
-    //         'pat.*',
-    //         'teleconsults.id as meetID',
-    //         'd.case_no as caseNO',
-    //         'd.id as demographic_id',
-    //         'ch.id as clinical_id',
-    //         'pe.id as phy_id',
-    //         'cs.id as covidscreen_id',
-    //         'csa.id as covidassess_id',
-    //         'das.id as diagassess_id',
-    //         'fac.facilityname as FacName'
-    //     )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-    //         ->leftJoin('facilities as fac', 'fac.id', '=', 'pat.facility_id')
-    //         ->leftJoin('tele_demographic_profile as d', 'd.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_clinical_histories as ch', 'ch.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_physical_exams as pe', 'pe.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_screening as cs', 'cs.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_covid19_clinical_assessment as csa', 'csa.meeting_id', '=', 'teleconsults.id')
-    //         ->leftJoin('tele_diagnosis_assessment as das', 'das.meeting_id', '=', 'teleconsults.id')
-    //         ->where('teleconsults.id', $req->meet_id)
-    //         ->first();
-            
-    //         👇 Add this line to inspect what you get
-    //         dd($meeting);
-
-    //     if ($meeting->phyexam) {
-    //         $conjunctiva = $meeting->phyexam->conjunctiva;
-    //         $neck = $meeting->phyexam->neck;
-    //         $breast = $meeting->phyexam->breast;
-    //         $thorax = $meeting->phyexam->thorax;
-    //         $abdomen = $meeting->phyexam->abdomen;
-    //         $genitals = $meeting->phyexam->genitals;
-    //         $extremities = $meeting->phyexam->extremities;
-    //     }
-
-    //     return json_encode($meeting);
-    // }
 
     public function getPendingMeeting($id)
     {

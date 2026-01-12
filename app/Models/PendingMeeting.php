@@ -10,8 +10,12 @@ class PendingMeeting extends Model implements Auditable
     protected $table = 'pending_meetings';
     protected $guarded = array();
 
+    // public function patient() {
+    //     return $this->hasOne(Patient::class, 'id', 'patient_id');
+    // }
+
     public function patient() {
-        return $this->hasOne(Patient::class, 'id', 'patient_id');
+        return $this->hasOne(PatientV2::class, 'id', 'patient_id');
     }
 
     public function doctor() {

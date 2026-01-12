@@ -10,6 +10,7 @@ use App\Http\Controllers\Doctor\HomeController as DoctorHomeController;
 use App\Http\Controllers\Doctor\IssueConcernCtrl;
 use App\Http\Controllers\Doctor\ManageController as DoctorManageController;
 use App\Http\Controllers\Doctor\PatientController as DoctorPatientController;
+use App\Http\Controllers\Patient\PatientV2Controller;
 use App\Http\Controllers\Doctor\TeleConsultController as DoctorTeleConsultController;
 use App\Http\Controllers\FeedbackCtrl;
 use App\Http\Controllers\Manage\DtrController;
@@ -136,6 +137,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/demographic-store', [PatientPatientController::class, 'demographicStore']);
     Route::post('/physical-exam-store', [PatientPatientController::class, 'phyExamStore']);
     Route::get('/clinical-info', [PatientPatientController::class, 'clinicalInfo']);
+    //patient v2  
+    Route::get('/patients', [PatientV2Controller::class, 'index']);
+    Route::post('/patients/store-or-update', [PatientV2Controller::class, 'storeOrUpdate']);
+    Route::get('/patients/{id}', [PatientV2Controller::class, 'show']);
 
     // JM superadmin Drugs/Meds
     Route::get('drugsmeds/', [DrugsMedsCtrl::class, 'index']);
@@ -219,6 +224,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/get-covidscreening/{meeting_id}', [TeleController::class, 'getCV']); // fetch cv 
     Route::post('/save-covidscreening', [TeleController::class, 'storeCV']); //save cv
     Route::get('/tele/countries', [TeleController::class, 'getCountries']); //fetch country list
+    Route::get('/tele/regions', [TeleController::class, 'getRegions']); //fetch region list
+    Route::get('/tele/provinces', [TeleController::class, 'getProvinces']);
+    Route::get('/tele/cities', [TeleController::class, 'getMunicipalCities']);
+    Route::get('/tele/barangays', [TeleController::class, 'getBarangays']);
     Route::get('/get-covidassessment/{meeting_id}', [TeleController::class, 'getCA']); // fetch ca 
     Route::post('/save-covidassessment', [TeleController::class, 'storeCA']); //save ca
     Route::get('/get-diagnosisassessment/{meeting_id}', [TeleController::class, 'getDA']); // fetch da

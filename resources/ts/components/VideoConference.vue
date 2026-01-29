@@ -266,7 +266,7 @@ const startRecording = () => {
   drawFrame()
 
   // Capture canvas as stream
-  canvasStream = (canvas as HTMLCanvasElement).captureStream(30) // 30 fps
+  canvasStream = (canvas as HTMLCanvasElement).(30) // 30 fps
 
   // Add local audio to the stream
   localStream.getAudioTracks().forEach(track => {

@@ -42,40 +42,26 @@ use App\Models\PlanManagement;
 
 use App\Models\PatientV2;
 
-
 class TeleController extends Controller
 {
     public function index(Request $request)
     {
         $user = Auth::user();
         $keyword = $request->view_all ? '' : $request->date_range;
-        $data = Teleconsult::select(
-            'teleconsults.*',
-            'teleconsults.id as meetID',
-            'teleconsults.user_id as Creator',
-            'teleconsults.doctor_id as RequestTo',
-            'pat.pat_lname as patLname',
-            'pat.pat_fname as patFname',
-            'pat.pat_mname as patMname',
-            'pat.pat_birthDate as dob',
-            'pat.sex_code as sex',
-            'pat.civil_stat_code as civil_status',
-            'pat.id as PatID',
-        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        $data = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname', 'pat.pat_birthDate as dob', 'pat.sex_code as sex', 'pat.civil_stat_code as civil_status', 'pat.id as PatID')->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[1]));
-            $data = $data
-                ->where(function ($q) use ($date_start, $date_end) {
-                    $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
-                });
+            $data = $data->where(function ($q) use ($date_start, $date_end) {
+                $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
+            });
         }
         $activeid = $user->patient ? $user->patient->id : $user->id;
-        $data = $data->where(function ($q) use ($activeid) {
-            $q->where('teleconsults.doctor_id', '=', $activeid)
-                ->orWhere('teleconsults.user_id', '=', $activeid)
-                ->orWhere('teleconsults.patient_id', '=', $activeid);
-        })->whereDate('teleconsults.date_meeting', '=', Carbon::now()->toDateString())
+        $data = $data
+            ->where(function ($q) use ($activeid) {
+                $q->where('teleconsults.doctor_id', '=', $activeid)->orWhere('teleconsults.user_id', '=', $activeid)->orWhere('teleconsults.patient_id', '=', $activeid);
+            })
+            ->whereDate('teleconsults.date_meeting', '=', Carbon::now()->toDateString())
             ->orderBy('teleconsults.date_meeting', 'asc')
             ->get();
         $data->load('encoded.facility');
@@ -84,55 +70,39 @@ class TeleController extends Controller
             'bar.brg_name as barangay',
             // 'user.email as email',
             // 'user.username as username',
-        )->leftJoin('barangays as bar', DB::raw("CAST(bar.brg_psgc AS CHAR)"), '=', 'tbl_master_patient.bgycode')
+        )
+            ->leftJoin('barangays as bar', DB::raw('CAST(bar.brg_psgc AS CHAR)'), '=', 'tbl_master_patient.bgycode')
             // ->leftJoin('users as user', 'user.id', '=', 'tbl_master_patient.account_id')
             // ->where('tbl_master_patient.userid', $user->id)
             ->orderby('tbl_master_patient.pat_lname', 'asc')
             ->get();
 
         $keyword_past = $request->view_all_past ? '' : $request->date_range_past;
-        $data_past = Teleconsult::select(
-            'teleconsults.*',
-            'teleconsults.id as meetID',
-            'teleconsults.user_id as Creator',
-            'teleconsults.doctor_id as RequestTo',
-            'pat.pat_lname as patLname',
-            'pat.pat_fname as patFname',
-            'pat.pat_mname as patMname',
-            'pat.id as PatID',
-        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        $data_past = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname', 'pat.id as PatID')->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword_past) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range_past)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range_past)[1]));
-            $data_past = $data_past
-                ->where(function ($q) use ($date_start, $date_end) {
-                    $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
-                });
+            $data_past = $data_past->where(function ($q) use ($date_start, $date_end) {
+                $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
+            });
         }
-        $data_past = $data_past->where(function ($q) use ($user) {
-            $q->where('teleconsults.doctor_id', '=', $user->id)
-                ->orWhere('teleconsults.user_id', '=', $user->id);
-        })->whereDate('teleconsults.date_meeting', '<', Carbon::now()->toDateString())
+        $data_past = $data_past
+            ->where(function ($q) use ($user) {
+                $q->where('teleconsults.doctor_id', '=', $user->id)->orWhere('teleconsults.user_id', '=', $user->id);
+            })
+            ->whereDate('teleconsults.date_meeting', '<', Carbon::now()->toDateString())
             ->orderBy('teleconsults.date_meeting', 'desc')
             ->get();
         $data_past->load('encoded.facility');
         $keyword_req = $request->view_all_req ? '' : $request->date_range_req;
-        $data_req = PendingMeeting::select(
-            'pending_meetings.*',
-            'pending_meetings.id as meetID',
-            'pending_meetings.created_at as reqDate',
-            'pat.pat_lname as patLname',
-            'pat.pat_fname as patFname',
-            'pat.pat_mname as patMname',
-        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id');
+        $data_req = PendingMeeting::select('pending_meetings.*', 'pending_meetings.id as meetID', 'pending_meetings.created_at as reqDate', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname')->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id');
         if ($keyword_req) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range_req)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range_req)[1]));
-            $data_req = $data_req
-                ->where(function ($q) use ($date_start, $date_end) {
-                    $q->whereDate('pending_meetings.datefrom', '>=', $date_start);
-                    $q->whereDate('pending_meetings.datefrom', '<=', $date_end);
-                });
+            $data_req = $data_req->where(function ($q) use ($date_start, $date_end) {
+                $q->whereDate('pending_meetings.datefrom', '>=', $date_start);
+                $q->whereDate('pending_meetings.datefrom', '<=', $date_end);
+            });
         }
         $status_req = $request->view_all_req ? '' : ($request->status_req ? $request->status_req : 'Pending');
         $active_tab = $request->active_tab ? $request->active_tab : 'request';
@@ -141,63 +111,32 @@ class TeleController extends Controller
                 $q->where('pending_meetings.status', $status_req);
             });
         }
-        $data_req = $data_req->where('pending_meetings.doctor_id', '=', $user->id)
-            ->orderBy('pending_meetings.id', 'desc')
-            ->get();
+        $data_req = $data_req->where('pending_meetings.doctor_id', '=', $user->id)->orderBy('pending_meetings.id', 'desc')->get();
         $data_req->load('facility', 'patient');
-        $data_my_req = PendingMeeting::select(
-            'pending_meetings.*',
-            'pending_meetings.id as meetID',
-            'pending_meetings.created_at as reqDate',
-            'pat.pat_lname as patLname',
-            'pat.pat_fname as patFname',
-            'pat.pat_mname as patMname',
-        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')
-            ->where('pending_meetings.user_id', '=', $user->id)
-            ->orderBy('pending_meetings.id', 'desc')
-            ->get();
+        $data_my_req = PendingMeeting::select('pending_meetings.*', 'pending_meetings.id as meetID', 'pending_meetings.created_at as reqDate', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname')->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')->where('pending_meetings.user_id', '=', $user->id)->orderBy('pending_meetings.id', 'desc')->get();
         $data_my_req->load('facility', 'doctor');
         $facilities = Facility::orderBy('facilityname', 'asc')->get();
-        $count_req = PendingMeeting::select(
-            'pending_meetings.*',
-            'pending_meetings.id as meetID',
-            'pending_meetings.created_at as reqDate',
-        )->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')
-            ->where('pending_meetings.status', 'Pending')
-            ->where('pending_meetings.doctor_id', '=', $user->id)->count();
+        $count_req = PendingMeeting::select('pending_meetings.*', 'pending_meetings.id as meetID', 'pending_meetings.created_at as reqDate')->leftJoin('tbl_master_patient as pat', 'pending_meetings.patient_id', '=', 'pat.id')->where('pending_meetings.status', 'Pending')->where('pending_meetings.doctor_id', '=', $user->id)->count();
         $telecat = DocCategory::orderBy('category_name', 'asc')->get();
         $labreq = LabRequest::where('req_type', 'LAB')->orderby('description', 'asc')->get();
         $imaging = LabRequest::where('req_type', 'RAD')->orderby('description', 'asc')->get();
         $docorder = DoctorOrder::where('doctorid', $user->id)->get();
         $doc_type = Doc_Type::where('isactive', '1')->orderBy('doc_name', 'asc')->get();
 
-        $data_up = Teleconsult::select(
-            'teleconsults.*',
-            'teleconsults.id as meetID',
-            'teleconsults.user_id as Creator',
-            'teleconsults.doctor_id as RequestTo',
-            'pat.pat_lname as patLname',
-            'pat.pat_fname as patFname',
-            'pat.pat_mname as patMname',
-            'pat.pat_birthDate as dob',
-            'pat.sex_code as sex',
-            'pat.civil_stat_code as civil_status',
-            'pat.id as PatID',
-        )->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        $data_up = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname', 'pat.pat_birthDate as dob', 'pat.sex_code as sex', 'pat.civil_stat_code as civil_status', 'pat.id as PatID')->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         if ($keyword) {
             $date_start = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[0]));
             $date_end = date('Y-m-d', strtotime(explode(' - ', $request->date_range)[1]));
-            $data_up = $data_up
-                ->where(function ($q) use ($date_start, $date_end) {
-                    $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
-                });
+            $data_up = $data_up->where(function ($q) use ($date_start, $date_end) {
+                $q->whereBetween('teleconsults.date_meeting', [$date_start, $date_end]);
+            });
         }
         $activeid = $user->patient ? $user->patient->id : $user->id;
-        $data_up = $data_up->where(function ($q) use ($activeid) {
-            $q->where('teleconsults.doctor_id', '=', $activeid)
-                ->orWhere('teleconsults.user_id', '=', $activeid)
-                ->orWhere('teleconsults.patient_id', '=', $activeid);
-        })->whereDate('teleconsults.date_meeting', '>=', Carbon::now()->toDateString())
+        $data_up = $data_up
+            ->where(function ($q) use ($activeid) {
+                $q->where('teleconsults.doctor_id', '=', $activeid)->orWhere('teleconsults.user_id', '=', $activeid)->orWhere('teleconsults.patient_id', '=', $activeid);
+            })
+            ->whereDate('teleconsults.date_meeting', '>=', Carbon::now()->toDateString())
             ->orderBy('teleconsults.date_meeting', 'asc')
             ->get();
 
@@ -227,43 +166,57 @@ class TeleController extends Controller
 
     public function schedTeleStore(Request $req)
     {
-        $docid = $req->doctor_id;
-        $user = Auth::user();
-        $user_id = $user->id;
-        $facility = $user->facility->facilityname;
-        // PusherHelper::trigger('my-channel.'.$docid, 'my-event.'.$docid, [
-        //     'title' => 'New Teleconsultation Request',
-        //     'subtitle' => $facility,
-        //     'time' => Carbon::now(),
-        //     'isSeen' => false,
-        // ]);
-        $req->request->add([
-            'user_id' => $user_id,
-            'status' => 'Pending',
+        $req->validate([
+            'doctor_id' => 'required',
         ]);
+
+        $user = Auth::user();
+
+        $data = $req->except('meeting_id');
+        $data['user_id'] = $user->id;
+        $data['status'] = 'Pending';
+
         if ($req->meeting_id) {
-            $meet = PendingMeeting::find($req->meeting_id)->update($req->except('meeting_id'));
+            $meet = PendingMeeting::find($req->meeting_id);
+
+            if (!$meet) {
+                return response()->json(
+                    [
+                        'message' => 'Meeting not found',
+                    ],
+                    404,
+                );
+            }
+
+            $meet->update($data);
         } else {
-            $meet = PendingMeeting::create($req->except('meeting_id'));
+            $meet = PendingMeeting::create($data);
         }
+
+        // Trigger AFTER successful save
+        PusherHelper::trigger('my-channel.' . $req->doctor_id, 'my-event.' . $req->doctor_id, [
+            'title' => 'New Teleconsultation Request',
+            'subtitle' => optional($user->facility)->facilityname,
+            'time' => Carbon::now()->toDateTimeString(),
+            'isSeen' => false,
+        ]);
+
+        return response()->json([
+            'message' => 'Teleconsultation scheduled successfully',
+            'data' => $meet,
+        ]);
     }
 
     public function indexCall($id)
     {
         $user = Session::get('auth');
         $decid = Crypt::decrypt($id);
-        $meetings = Teleconsult::select(
-            'teleconsults.*',
-            'pat.id as PATID',
-            'teleconsults.id as meetID'
-        )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-            ->where('teleconsults.id', $decid)
-            ->first();
+        $meetings = Teleconsult::select('teleconsults.*', 'pat.id as PATID', 'teleconsults.id as meetID')->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')->where('teleconsults.id', $decid)->first();
         $title = $meetings->title;
         $emailname = Crypt::decrypt($meetings->doctor->email);
         $password = $meetings->password;
         $role = $meetings->doctor_id == $user->id ? 1 : 0;
-        $username = $user->fname.' '.$user->mname.' '.$user->lname;
+        $username = $user->fname . ' ' . $user->mname . ' ' . $user->lname;
         //Set the timezone to UTC
         date_default_timezone_set('UTC');
 
@@ -392,13 +345,12 @@ class TeleController extends Controller
         $date = Carbon::parse($req->date)->format('Y-m-d');
         $time = $req->time ? Carbon::parse($req->time)->format('H:i:s') : '';
         $doctor_id = $req->doctor_id ? $req->doctor_id : $user->id;
-        $endtime = Carbon::parse($time)
-            ->addMinutes($req->duration)
-            ->format('H:i:s');
-        $meetings = Teleconsult::whereDate('date_meeting', '=', $date)->where(function ($q) use ($doctor_id, $user) {
-            $q->where('doctor_id', $doctor_id)
-                ->orWhere('doctor_id', $user->id);
-        })->get();
+        $endtime = Carbon::parse($time)->addMinutes($req->duration)->format('H:i:s');
+        $meetings = Teleconsult::whereDate('date_meeting', '=', $date)
+            ->where(function ($q) use ($doctor_id, $user) {
+                $q->where('doctor_id', $doctor_id)->orWhere('doctor_id', $user->id);
+            })
+            ->get();
         $count = 1;
         if ($date === Carbon::now()->format('Y-m-d') && $time <= Carbon::now()->addMinutes('180')->format('H:i:s') && $time) {
             return 'Not valid';
@@ -428,19 +380,9 @@ class TeleController extends Controller
     //     return json_encode($meeting);
     // }
 
-        public function adminMeetingInfo(Request $req)
+    public function adminMeetingInfo(Request $req)
     {
-        $meeting = Meeting::select(
-            'teleconsults.*',
-            'pat.*',
-            'teleconsults.id as meetID',
-            'user.fname as docfname',
-            'user.mname as docmname',
-            'user.lname as doclname',
-        )->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')
-            ->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')
-            ->where('teleconsults.id', $req->meet_id)
-            ->first();
+        $meeting = Meeting::select('teleconsults.*', 'pat.*', 'teleconsults.id as meetID', 'user.fname as docfname', 'user.mname as docmname', 'user.lname as doclname')->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')->leftJoin('users as user', 'user.id', '=', 'pat.doctor_id')->where('teleconsults.id', $req->meet_id)->first();
 
         return json_encode($meeting);
     }
@@ -466,15 +408,16 @@ class TeleController extends Controller
             'pat.id as patID',
             'teleconsults.id as meetID',
             'fac.id as facID',
-            'fac.facilityname as FacName'
-        )->leftJoin('tbl_master_patient as pat', 'pat.id', '=', 'teleconsults.patient_id')
+            'fac.facilityname as FacName',
+        )
+            ->leftJoin('tbl_master_patient as pat', 'pat.id', '=', 'teleconsults.patient_id')
             ->leftJoin('pending_meetings as pmeet', 'pmeet.meet_id', '=', 'teleconsults.id')
             ->leftJoin('facilities as fac', 'fac.id', '=', 'pmeet.facility_id')
             ->leftJoin('users as user', 'user.id', '=', 'pat.userid')
             ->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')
-            ->leftJoin('provinces as prov','prov.prov_psgc','=', 'fac.prov_psgc')
-            ->leftJoin('municipal_cities as mun','mun.muni_psgc','=', 'fac.muni_psgc')
-            ->leftJoin('barangays as brgy','brgy.brg_psgc','=', 'fac.brgy_psgc')
+            ->leftJoin('provinces as prov', 'prov.prov_psgc', '=', 'fac.prov_psgc')
+            ->leftJoin('municipal_cities as mun', 'mun.muni_psgc', '=', 'fac.muni_psgc')
+            ->leftJoin('barangays as brgy', 'brgy.brg_psgc', '=', 'fac.brgy_psgc')
             //patient full address
             ->leftJoin('provinces as provp', DB::raw('CAST(provp.prov_code AS CHAR)'), '=', 'pat.provcode')
             ->leftJoin('municipal_cities as munp', DB::raw('CAST(munp.zipcode AS CHAR)'), '=', 'pat.citycode')
@@ -482,23 +425,21 @@ class TeleController extends Controller
             ->where('teleconsults.id', $req->meet_id)
             ->first();
 
-    //         //👇 Add this line to inspect what you get
-    //                 dd($meeting);
+        //         //👇 Add this line to inspect what you get
+        //                 dd($meeting);
 
-    //             if ($meeting->phyexam) {
-    //                 $conjunctiva = $meeting->phyexam->conjunctiva;
-    //                 $neck = $meeting->phyexam->neck;
-    //                 $breast = $meeting->phyexam->breast;
-    //                 $thorax = $meeting->phyexam->thorax;
-    //                 $abdomen = $meeting->phyexam->abdomen;
-    //                 $genitals = $meeting->phyexam->genitals;
-    //                 $extremities = $meeting->phyexam->extremities;
-    //             }
-
+        //             if ($meeting->phyexam) {
+        //                 $conjunctiva = $meeting->phyexam->conjunctiva;
+        //                 $neck = $meeting->phyexam->neck;
+        //                 $breast = $meeting->phyexam->breast;
+        //                 $thorax = $meeting->phyexam->thorax;
+        //                 $abdomen = $meeting->phyexam->abdomen;
+        //                 $genitals = $meeting->phyexam->genitals;
+        //                 $extremities = $meeting->phyexam->extremities;
+        //             }
 
         return json_encode($meeting);
     }
-
 
     //tele forms
     //use custom app service
@@ -588,57 +529,63 @@ class TeleController extends Controller
     public function getFacilities()
     {
         try {
-            $facilities = Facility::orderBy('facilityname', 'asc')
-                ->get(['id', 'facilityname']);
+            $facilities = Facility::orderBy('facilityname', 'asc')->get(['id', 'facilityname']);
 
             return response()->json([
                 'status' => 'success',
-                'data' => $facilities
+                'data' => $facilities,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ], 500);
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                ],
+                500,
+            );
         }
     }
 
     public function getCountries()
     {
         try {
-            $countries = Countries::orderBy('en_short_name', 'asc')
-                ->get(['num_code', 'en_short_name', 'nationality']);
+            $countries = Countries::orderBy('en_short_name', 'asc')->get(['num_code', 'en_short_name', 'nationality']);
 
             return response()->json([
                 'status' => 'success',
-                'data' => $countries
+                'data' => $countries,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ], 500);
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                ],
+                500,
+            );
         }
     }
 
     public function getRegions()
     {
         try {
-            $regions = Region::orderBy('reg_desc', 'asc')
-                ->get(['reg_psgc', 'reg_desc', 'reg_code']);
+            $regions = Region::orderBy('reg_desc', 'asc')->get(['reg_psgc', 'reg_desc', 'reg_code']);
 
             return response()->json([
                 'status' => 'success',
-                'data' => $regions
+                'data' => $regions,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ], 500);
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                ],
+                500,
+            );
         }
     }
 
@@ -671,7 +618,7 @@ class TeleController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
         }
     }
-    
+
     //prescription list
     public function prescriptionList(Request $request)
     {
@@ -681,22 +628,22 @@ class TeleController extends Controller
             \Log::info('➡️ Entered prescriptionList()', ['keyword' => $keyword]);
 
             $data = Prescription::with('drugmed') // include relation for drug name
-                ->where(function($q) use ($keyword) {
+                ->where(function ($q) use ($keyword) {
                     $q->where('presc_code', 'like', "%$keyword%")
-                    ->orWhere('drug_id', 'like', "%$keyword%")
-                    ->orWhere('type_of_medicine', 'like', "%$keyword%");
+                        ->orWhere('drug_id', 'like', "%$keyword%")
+                        ->orWhere('type_of_medicine', 'like', "%$keyword%");
                 })
                 // ->where('void', 1)
                 ->orderBy('presc_code', 'asc')
                 ->get()
                 ->map(function ($presc) {
                     return [
-                        'presc_code'    => $presc->presc_code,
-                        'type_of_medicine' => $presc->type_med(),   // ✅ from model
+                        'presc_code' => $presc->presc_code,
+                        'type_of_medicine' => $presc->type_med(), // ✅ from model
                         'drugcode' => optional($presc->drugmed)->drugcode,
-                        'frequency'     => $presc->freq(),       // ✅ from model
-                        'dose_regimen'  => $presc->dose_reg(),   // ✅ from model
-                        'total_qty'      => $presc->total_qty,
+                        'frequency' => $presc->freq(), // ✅ from model
+                        'dose_regimen' => $presc->dose_reg(), // ✅ from model
+                        'total_qty' => $presc->total_qty,
                     ];
                 });
 
@@ -704,8 +651,8 @@ class TeleController extends Controller
 
             return response()->json($data);
         } catch (\Exception $e) {
-            \Log::error('❌ Error in prescriptionList(): '.$e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            \Log::error('❌ Error in prescriptionList(): ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -716,7 +663,7 @@ class TeleController extends Controller
         $pend_meet = PendingMeeting::find($id);
         $encoded = $pend_meet->encoded->facility;
         $patient = $pend_meet->patient;
-        $patname = \Crypt::decrypt($patient->fname).' '.\Crypt::decrypt($patient->mname).' '.\Crypt::decrypt($patient->lname);
+        $patname = \Crypt::decrypt($patient->fname) . ' ' . \Crypt::decrypt($patient->mname) . ' ' . \Crypt::decrypt($patient->lname);
 
         return response()->json([
             'pend_meet' => $pend_meet,
@@ -732,10 +679,8 @@ class TeleController extends Controller
         $action = $req->action;
         $date = date('Y-m-d', strtotime($req->date_from));
         $time = date('H:i:s', strtotime($req->time));
-        $endtime = Carbon::parse($time)
-            ->addMinutes((int) $req->duration)
-            ->format('H:i:s');
-        $patient = $meet->patient->lname.', '.$meet->patient->fname.' '.$meet->patient->mname;
+        $endtime = Carbon::parse($time)->addMinutes((int) $req->duration)->format('H:i:s');
+        $patient = $meet->patient->lname . ', ' . $meet->patient->fname . ' ' . $meet->patient->mname;
         if ($action == 'Accept') {
             $create_data = [
                 'user_id' => $meet->user_id,
@@ -745,16 +690,16 @@ class TeleController extends Controller
                 'from_time' => $time,
                 'to_time' => $endtime,
                 'title' => $meet->title,
-                'password' => 'doh'.Str::random(5),
+                'password' => 'doh' . Str::random(5),
                 'is_started' => 0,
             ];
             $create_meeting = Teleconsult::create($create_data);
-            // PusherHelper::trigger('my-channel.'.$meet->user_id, 'my-event.'.$meet->user_id, [
-            //     'title' => 'New Teleconsultation Accepted',
-            //     'subtitle' => $userfac,
-            //     'time' => Carbon::now(),
-            //     'isSeen' => false,
-            // ]);
+            PusherHelper::trigger('my-channel.' . $meet->user_id, 'my-event.' . $meet->user_id, [
+                'title' => 'New Teleconsultation Accepted',
+                'subtitle' => $userfac,
+                'time' => Carbon::now(),
+                'isSeen' => false,
+            ]);
         }
         $meet_id = $action == 'Accept' ? $create_meeting->id : null;
         $data = [
@@ -764,18 +709,17 @@ class TeleController extends Controller
         $meet->update($data);
         if ($action == 'Accept') {
             event(new AcDecReq($user, $create_meeting, $action, $userfac));
-            $to_name = $meet->encoded->fname.' '.$meet->encoded->mname.' '.$meet->encoded->lname;
+            $to_name = $meet->encoded->fname . ' ' . $meet->encoded->mname . ' ' . $meet->encoded->lname;
             $to_email = $meet->encoded->email;
-            $doctor = 'Dr. '.$meet->doctor->fname.' '.$meet->doctor->mname.' '.$meet->doctor->lname;
+            $doctor = 'Dr. ' . $meet->doctor->fname . ' ' . $meet->doctor->mname . ' ' . $meet->doctor->lname;
             $from_fac = $meet->doctor->facility->facilityname;
             $em = [
                 'to_name' => $to_name,
                 'patient' => $patient,
                 'doctor' => $doctor,
                 'from_fac' => $from_fac,
-                'date' => $date.' '.$time,
+                'date' => $date . ' ' . $time,
                 'complaint' => $meet->title,
-
             ];
             // Mail::send('teleconsult.email.email_accept', $em, function($message) use ($to_name, $to_email) {
             // $message->to($to_email, $to_name)
@@ -808,8 +752,8 @@ class TeleController extends Controller
         if ($req->hasFile('file')) {
             foreach ($files as $file) {
                 $name = str_replace(' ', '', $file->getClientOriginalName());
-                $file->move(public_path('labrequest').'/'.$fac_id.'/'.$pat_id, $name);
-                $path = 'labrequest/'.$fac_id.'/'.$pat_id.'/'.$name;
+                $file->move(public_path('labrequest') . '/' . $fac_id . '/' . $pat_id, $name);
+                $path = 'labrequest/' . $fac_id . '/' . $pat_id . '/' . $name;
                 $data = [
                     'docorderid' => $req->doctororder_id,
                     'doctypeid' => $req->doc_type,
@@ -823,7 +767,6 @@ class TeleController extends Controller
             }
         }
         Session::put('action_made', 'Successfully Add Lab Request.');
-
     }
 
     public function thankYouPage(Request $req)
@@ -834,26 +777,12 @@ class TeleController extends Controller
     public function calendarMeetings(Request $req)
     {
         $user = Session::get('auth');
-        $data = Teleconsult::select(
-            'teleconsults.*',
-            'teleconsults.id as meetID',
-            'teleconsults.user_id as Creator',
-            'teleconsults.doctor_id as RequestTo',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-            'pat.id as PatID',
-            'users.facility_id as facid'
-        )->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id')
-            ->leftJoin('users as users', 'teleconsults.doctor_id', '=', 'users.id')
-            ->leftJoin('users as use', 'teleconsults.user_id', '=', 'users.id');
-        $data = $data->where(function ($q) use ($user) {
-            $q->where('teleconsults.doctor_id', '=', $user->id)
-                ->orWhere('teleconsults.user_id', '=', $user->id)
-                ->orWhere('teleconsults.user_id', '=', $user->id)
-                ->orWhere('users.facility_id', '=', $user->facility_id)
-                ->orWhere('use.facility_id', '=', $user->facility_id);
-        })->orderBy('teleconsults.date_meeting', 'asc')
+        $data = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.lname as patLname', 'pat.fname as patFname', 'pat.mname as patMname', 'pat.id as PatID', 'users.facility_id as facid')->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id')->leftJoin('users as users', 'teleconsults.doctor_id', '=', 'users.id')->leftJoin('users as use', 'teleconsults.user_id', '=', 'users.id');
+        $data = $data
+            ->where(function ($q) use ($user) {
+                $q->where('teleconsults.doctor_id', '=', $user->id)->orWhere('teleconsults.user_id', '=', $user->id)->orWhere('teleconsults.user_id', '=', $user->id)->orWhere('users.facility_id', '=', $user->facility_id)->orWhere('use.facility_id', '=', $user->facility_id);
+            })
+            ->orderBy('teleconsults.date_meeting', 'asc')
             ->get();
         $result = [];
         $join = '';
@@ -866,8 +795,8 @@ class TeleController extends Controller
             $values = [
                 'id' => $value->id,
                 'title' => $value->title,
-                'start' => $value->date_meeting.'T'.$value->from_time,
-                'end' => $value->date_meeting.'T'.$value->to_time,
+                'start' => $value->date_meeting . 'T' . $value->from_time,
+                'end' => $value->date_meeting . 'T' . $value->to_time,
                 'allow' => $join,
             ];
             array_push($result, $values);
@@ -879,11 +808,7 @@ class TeleController extends Controller
     public function getDoctorsFacility(Request $req)
     {
         $user_id = Auth::user()->id;
-        $doctors = User::where('facility_id', $req->fac_id)
-            ->where('doc_cat_id', $req->cat_id)
-            ->where('level', 'doctor')
-            ->where('id', '!=', $user_id)
-            ->orderBy('lname', 'asc')->get();
+        $doctors = User::where('facility_id', $req->fac_id)->where('doc_cat_id', $req->cat_id)->where('level', 'doctor')->where('id', '!=', $user_id)->orderBy('lname', 'asc')->get();
 
         return json_encode($doctors);
     }
@@ -901,20 +826,12 @@ class TeleController extends Controller
     public function mycalendarMeetings(Request $req)
     {
         $user = Auth::user();
-        $data = Teleconsult::select(
-            'teleconsults.*',
-            'teleconsults.id as meetID',
-            'teleconsults.user_id as Creator',
-            'teleconsults.doctor_id as RequestTo',
-            'pat.lname as patLname',
-            'pat.fname as patFname',
-            'pat.mname as patMname',
-            'pat.id as PatID',
-        )->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
-        $data = $data->where(function ($q) use ($user) {
-            $q->where('teleconsults.doctor_id', '=', $user->id)
-                ->orWhere('teleconsults.user_id', '=', $user->id);
-        })->orderBy('teleconsults.date_meeting', 'asc')
+        $data = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.lname as patLname', 'pat.fname as patFname', 'pat.mname as patMname', 'pat.id as PatID')->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        $data = $data
+            ->where(function ($q) use ($user) {
+                $q->where('teleconsults.doctor_id', '=', $user->id)->orWhere('teleconsults.user_id', '=', $user->id);
+            })
+            ->orderBy('teleconsults.date_meeting', 'asc')
             ->get();
         $result = [];
         $join = '';
@@ -927,8 +844,8 @@ class TeleController extends Controller
             $values = [
                 'id' => $value->id,
                 'title' => $value->title,
-                'start' => $value->date_meeting.'T'.$value->from_time,
-                'end' => $value->date_meeting.'T'.$value->to_time,
+                'start' => $value->date_meeting . 'T' . $value->from_time,
+                'end' => $value->date_meeting . 'T' . $value->to_time,
                 'allow' => $join,
                 'facility' => $value->doctor->facility->facilityname,
             ];
@@ -987,13 +904,13 @@ class TeleController extends Controller
                 'start_time' => $start_time,
             ];
             if ($tel->user_id != $user->id) {
-                // PusherHelper::trigger('my-channel.'.$tel->user_id, 'my-event.'.$tel->user_id, [
-                //     'title' => 'Teleconsultation - '.$tel->title.' Started!',
-                //     'subtitle' => $userfac,
-                //     'time' => Carbon::now(),
-                //     'isSeen' => false,
-                // ]);
-                if (! $tel->start_time) {
+                PusherHelper::trigger('my-channel.' . $tel->user_id, 'my-event.' . $tel->user_id, [
+                    'title' => 'Teleconsultation - ' . $tel->title . ' Started!',
+                    'subtitle' => $userfac,
+                    'time' => Carbon::now(),
+                    'isSeen' => false,
+                ]);
+                if (!$tel->start_time) {
                     $tel = $tel->update($create_data);
                 }
             }
@@ -1015,7 +932,7 @@ class TeleController extends Controller
             $file = $request->file('video');
 
             // Option 1: Save to storage
-            $path = $file->store('consult_videos/'.$tel->id, 'public');
+            $path = $file->store('consult_videos/' . $tel->id, 'public');
 
             // Option 2: Save as blob in DB (not recommended for large files)
             // $binary = file_get_contents($file->getRealPath());
@@ -1032,6 +949,5 @@ class TeleController extends Controller
                 'path' => $path,
             ]);
         }
-
     }
 }

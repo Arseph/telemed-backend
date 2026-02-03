@@ -28,6 +28,7 @@ use App\Http\Controllers\Superadmin\ManageController as SuperadminManageControll
 use App\Http\Controllers\Tele\TeleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OnlineUserController;
 
 Route::group(['prefix' => 'auth'], function () {
     Route::post('dbms/login', [AuthController::class, 'dbmslogin']);
@@ -48,6 +49,10 @@ Route::group(['prefix' => 'employee'], function () {
 });
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::post('/online-users/ping', [OnlineUserController::class, 'ping']);
+    Route::get('/online-users', [OnlineUserController::class, 'index']);
+
+
     Route::post('register-account', [LoginController::class, 'register']);
     Route::get('/places/{id}/{type}', [LoginController::class, 'getMunandBrgy']);
     Route::get('/get-doctor/{id}', [LoginController::class, 'getDoctor']);
@@ -245,5 +250,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/fetch-notification', [NotiFController::class, 'fetchNotif']);
     Route::get('/notif-patient-info/{id}', [NotiFController::class, 'patientInfo']);
     Route::post('/notif-patient-accept/{id}', [NotiFController::class, 'patientAccept']);
+
 });
+
+
+
 

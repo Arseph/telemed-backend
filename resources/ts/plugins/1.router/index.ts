@@ -4,6 +4,7 @@ import type { RouteRecordRaw } from 'vue-router/auto'
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import LndRoutes from './LndRoutes'
 import ManageRoutes from './ManageRoutes'
+import OnlineRoutes from './OnlineRoutes'
 import PmRoutes from './PmRoutes'
 import RnrRoutes from './RnrRoutes'
 import RspRoutes from './RspRoutes'
@@ -29,6 +30,7 @@ const router = createRouter({
     return { top: 0 }
   },
   extendRoutes: pages => [
+    ...OnlineRoutes.map(route => recursiveLayouts(route)),
     ...RspRoutes.map(route => recursiveLayouts(route)),
     ...LndRoutes.map(route => recursiveLayouts(route)),
     ...PmRoutes.map(route => recursiveLayouts(route)),

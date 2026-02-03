@@ -2,7 +2,7 @@ import { globals } from '@/src/globals'
 import type { AxiosInstance } from 'axios'
 import axios from 'axios'
 const axiosIns: AxiosInstance = axios.create({
-  baseURL: `${globals.api}`,
+  baseURL: `${globals.api}/api`,
   headers: {
     'Content-Type': 'multipart/form-data',
     'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -11,7 +11,7 @@ const axiosIns: AxiosInstance = axios.create({
 })
 
 const axiosJson: AxiosInstance = axios.create({
-  baseURL: `${globals.api}`,
+  baseURL: `${globals.api}/api`,
   headers: {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -20,7 +20,7 @@ const axiosJson: AxiosInstance = axios.create({
 })
 
 const axiosPdf: AxiosInstance = axios.create({
-  baseURL: `${globals.api}`,
+  baseURL: `${globals.api}/api`,
   headers: {
     'Content-Type': 'application/pdf',
     'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

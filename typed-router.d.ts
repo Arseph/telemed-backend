@@ -47,6 +47,7 @@ declare module 'vue-router/auto/routes' {
     'manage-sample': RouteRecordInfo<'manage-sample', '/manage/sample', Record<never, never>, Record<never, never>>,
     'manage-users': RouteRecordInfo<'manage-users', '/manage/users', Record<never, never>, Record<never, never>>,
     'manage-vpn': RouteRecordInfo<'manage-vpn', '/manage/vpn', Record<never, never>, Record<never, never>>,
+    'online-online': RouteRecordInfo<'online-online', '/online/online', Record<never, never>, Record<never, never>>,
     'rsp-evaluation': RouteRecordInfo<'rsp-evaluation', '/rsp/evaluation', Record<never, never>, Record<never, never>>,
     'rsp-jobs': RouteRecordInfo<'rsp-jobs', '/rsp/jobs', Record<never, never>, Record<never, never>>,
   }

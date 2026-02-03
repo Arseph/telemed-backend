@@ -70,4 +70,10 @@ class User extends Authenticatable implements Auditable
     public function doccat() {
         return $this->hasOne(DocCategory::class, 'id', 'doc_cat_id');
     }
+
+
+    public function online()
+    {
+        return $this->hasOne(OnlineUser::class);
+    }
 }

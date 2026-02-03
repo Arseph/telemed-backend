@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Schema::table('users', function (Blueprint $table) {
+        //     $table->boolean('is_dtr')->after('is_committee');
+        // });
+
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_dtr')->after('is_committee');
+            $table->boolean('is_dtr')->default(false);
         });
     }
 

@@ -441,6 +441,78 @@ class TeleController extends Controller
         return json_encode($meeting);
     }
 
+    public function meetingInfoV2(Request $request)
+    {
+        $request->validate([
+            'meet_id' => 'required|exists:teleconsults,id',
+        ]);
+
+        $meeting = Teleconsult::with(['patient', 'doctor', 'pendmeet', 'encoded', 'docorder', 'clinical', 'covidassess', 'covidscreen', 'diagassess', 'planmanage', 'phyexam', 'demoprof'])->findOrFail($request->meet_id);
+
+        return response()->json([
+            'data' => [
+                /* ===================== BASIC MEETING ===================== */
+                'meetID' => $meeting->id,
+                'facID' => $meeting->facID ?? null,
+                'case_no' => $meeting->demoprof->case_no ?? $meeting->id,
+
+                /* ===================== DOCTOR ===================== */
+                'doctor' => [
+                    'id' => $meeting->doctor->id ?? null,
+                    'fname' => $meeting->doctor->fname ?? null,
+                    'mname' => $meeting->doctor->mname ?? null,
+                    'lname' => $meeting->doctor->lname ?? null,
+                    'address' => $meeting->doctor_address, // accessor
+                ],
+
+                /* ===================== PATIENT ===================== */
+                'patient' => [
+                    'id' => $meeting->patient->id ?? null,
+                    'pat_fname' => $meeting->patient->pat_fname ?? null,
+                    'pat_mname' => $meeting->patient->pat_mname ?? null,
+                    'pat_lname' => $meeting->patient->pat_lname ?? null,
+                    'pat_mobile' => $meeting->patient->pat_mobile ?? null,
+                    'pat_birthDate' => $meeting->patient->pat_birthDate ?? null,
+                    'sex_code' => $meeting->patient->sex_code ?? null,
+                    'civil_stat_code' => $meeting->patient->civil_stat_code ?? null,
+                    'religion_code' => $meeting->patient->religion_code ?? null,
+                    'educattainment' => $meeting->patient->educattainment ?? null,
+                    'occupation_sp' => $meeting->patient->occupation_sp ?? null,
+                    'monthly_income' => $meeting->patient->monthly_income ?? null,
+                    'pat_philhealth' => $meeting->patient->pat_philhealth ?? null,
+                    'type_of_membership' => $meeting->patient->type_of_membership ?? null,
+                    'address' => $meeting->patient_address, // accessor
+                ],
+
+                /* ===================== DEMOGRAPHIC PROFILE ===================== */
+                'demographic_profile' => $meeting->demoprof
+                    ? [
+                        'tele_partner_platform' => $meeting->demoprof->tele_partner_platform,
+                        'prior_tele_proper' => $meeting->demoprof->prior_tele_proper,
+                        'is_patient_accompanied' => $meeting->demoprof->is_patient_accompanied,
+                        'case_no' => $meeting->demoprof->case_no,
+                        'name_of_companion' => $meeting->demoprof->name_of_companion,
+                        'relationship' => $meeting->demoprof->relationship,
+                        'phone_no' => $meeting->demoprof->phone_no,
+                    ]
+                    : null,
+
+                /* ===================== RELATED CLINICAL DATA ===================== */
+                'clinical_history' => $meeting->clinical,
+                'covid_assessment' => $meeting->covidassess,
+                'covid_screening' => $meeting->covidscreen,
+                'diagnosis' => $meeting->diagassess,
+                'plan_management' => $meeting->planmanage,
+                'physical_exam' => $meeting->phyexam,
+
+                /* ===================== META ===================== */
+                'encoded_by' => $meeting->encoded,
+                'pending_meeting' => $meeting->pendmeet,
+                'doctor_order' => $meeting->docorder,
+            ],
+        ]);
+    }
+
     //tele forms
     //use custom app service
     public function __construct(TeleFormsStoreFetchService $fetchService)

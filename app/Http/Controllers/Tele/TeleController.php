@@ -455,6 +455,9 @@ class TeleController extends Controller
                 'meetID' => $meeting->id,
                 'facID' => $meeting->facID ?? null,
                 'case_no' => $meeting->demoprof->case_no ?? $meeting->id,
+                'date_meeting' => $meeting->date_meeting,
+                'date_meeting' => $meeting->date_meeting,
+                'datetimemeet' => $meeting->date_meeting && $meeting->from_time ? $meeting->date_meeting . 'T' . $meeting->from_time : null,
 
                 /* ===================== DOCTOR ===================== */
                 'doctor' => [

@@ -20,6 +20,9 @@ return [
 
     'allowed_origins' => ['http://localhost:5173', 'http://127.0.0.1:5173'],
 
+    //LOCAL TEST CED
+    // 'allowed_origins' => ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://10.10.124.140:5173'],
+
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],

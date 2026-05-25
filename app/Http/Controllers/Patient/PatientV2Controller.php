@@ -31,29 +31,30 @@ use App\Models\Teleconsult;
 class PatientV2Controller extends Controller
 {
     /**
-     * Display a list of patients.
+     * Eager-load relationships reused across methods.
+     */
+    private array $with = ['account', 'meeting', 'barangay', 'allmeetings.doctor.doccat'];
+
+    /**
+     * Display a paginated list of patients.
      */
     public function index(Request $request)
     {
-        //Include eloquent relationship
-        $query = PatientV2::query()
-            ->with(['account', 'meeting', 'barangay', 'allmeetings.doctor.doccat'])
-            ->orderBy('id', 'desc');
+        $query = PatientV2::query()->with($this->with)->orderBy('id', 'desc');
 
-        //Optional search filter
-        if ($request->has('search') && $request->search !== '') {
+        // Search filter — uses CAST because pat_fname/pat_lname are varbinary
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('pat_fname', 'like', "%{$search}%")
-                ->orWhere('pat_lname', 'like', "%{$search}%")
-                ->orWhere('pat_temp_id', 'like', "%{$search}%");
+                $q->whereRaw('CAST(pat_fname AS CHAR) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('CAST(pat_lname AS CHAR) LIKE ?', ["%{$search}%"])
+                    ->orWhere('pat_temp_id', 'like', "%{$search}%");
             });
         }
 
-        // ✅ Paginate
         $patients = $query->paginate(20);
 
-        // ✅ Map to include barangay name directly
+        // Append barangay name directly onto each patient item
         $patients->getCollection()->transform(function ($p) {
             $p->brg_name = $p->barangay->brg_name ?? null;
             return $p;
@@ -62,36 +63,64 @@ class PatientV2Controller extends Controller
         return response()->json($patients);
     }
 
-     public function show($id)
+    /**
+     * Display a single patient with full relationships.
+     */
+    public function show($id)
     {
         try {
-            $patient = PatientV2::find($id);
+            $patient = PatientV2::with($this->with)->find($id);
 
             if (!$patient) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Patient not found'
-                ], 404);
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'message' => 'Patient not found',
+                    ],
+                    404,
+                );
             }
+
+            // Append barangay name for consistency with index()
+            $patient->brg_name = $patient->barangay->brg_name ?? null;
 
             return response()->json([
                 'status' => 'success',
-                'data' => $patient
+                'data' => $patient,
             ]);
-
         } catch (\Exception $e) {
-            \Log::error("Error fetching patient {$id}: " . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to fetch patient profile'
-            ], 500);
+            Log::error("Error fetching patient {$id}: " . $e->getMessage());
+
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'Failed to fetch patient profile',
+                ],
+                500,
+            );
         }
     }
 
-    //upsert
+    /**
+     * Create or update a patient (upsert).
+     */
     public function storeOrUpdate(Request $request)
     {
-        $patientId = $request->input('id'); 
+        // Validate required NOT NULL fields that have no DB default
+        $request->validate([
+            'regcode' => 'required|string|max:2',
+            'provcode' => 'required|string|max:4',
+            'citycode' => 'required|string|max:6',
+            'bgycode' => 'required|string|max:9',
+            'pat_fname' => 'required',
+            'pat_lname' => 'required',
+            'pat_mname' => 'required',
+            'sex_code' => 'required',
+            'pat_birthDate' => 'required|date',
+            'pat_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $patientId = $request->input('id');
 
         if ($patientId) {
             $patient = PatientV2::find($patientId) ?? new PatientV2();
@@ -99,40 +128,46 @@ class PatientV2Controller extends Controller
             $patient = new PatientV2();
         }
 
-        // Handle image upload
+        // Handle profile image upload
         if ($request->hasFile('pat_image') && $request->file('pat_image')->isValid()) {
             $destinationPath = public_path('images/profilepictures');
 
-            // Make directory if it doesn't exist
             if (!file_exists($destinationPath)) {
                 mkdir($destinationPath, 0755, true);
             }
 
-            // delete old image if exists
+            // Delete old image if it exists
             if ($patient->pat_image && file_exists(public_path($patient->pat_image))) {
                 @unlink(public_path($patient->pat_image));
             }
 
-            // Create unique filename
             $filename = time() . '_' . uniqid() . '.' . $request->file('pat_image')->getClientOriginalExtension();
+            $relativePath = 'images/profilepictures/' . $filename;
 
-            // Move uploaded file to /public/images/profilepictures
             $request->file('pat_image')->move($destinationPath, $filename);
 
-            // Save relative path (for frontend use)
-            $relativePath = 'images/profilepictures/' . $filename;
             $patient->pat_image = $relativePath;
         }
 
-        // Fill all other fields except pat_image
-        $patient->fill($request->except(['pat_image']));
+        // Fill all other fields — exclude pat_image (handled above) and
+        // any eager-loaded relationships/appended fields the Vue sends back
+        $patient->fill($request->except(['pat_image', 'account', 'meeting', 'allmeetings', 'barangay', 'brg_name']));
 
         // System-managed fields
         $patient->userid = auth()->id() ?? null;
         $patient->date_updated = now()->toDateString();
         $patient->time_updated = now()->toTimeString();
 
-        // Set entered date/time if new
+        // Apply safe defaults for NOT NULL columns that have no DB default
+        // so inserts don't fail when the frontend omits these optional flags
+        $patient->fsNumber = $patient->fsNumber ?? '';
+        $patient->phic_member = $patient->phic_member ?? '0';
+        $patient->uploaded = $patient->uploaded ?? '0';
+        $patient->validated = $patient->validated ?? '0';
+        $patient->phic_stat = $patient->phic_stat ?? '0';
+        $patient->PCB_nhts = $patient->PCB_nhts ?? '0';
+
+        // Set entered timestamps only on create
         if (!$patient->exists) {
             $patient->date_entered = now()->toDateString();
             $patient->time_entered = now()->toTimeString();
@@ -146,8 +181,4 @@ class PatientV2Controller extends Controller
             'data' => $patient,
         ]);
     }
-
-
-
 }
-

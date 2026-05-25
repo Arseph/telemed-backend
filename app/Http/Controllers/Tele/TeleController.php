@@ -995,34 +995,62 @@ class TeleController extends Controller
         }
     }
 
+    // public function stopConsult(Request $request)
+    // {
+    //     $tel = Teleconsult::find($request->consult_id);
+    //     if ($tel) {
+    //         $request->validate([
+    //             'consult_id' => 'required|integer',
+    //             'video' => 'required|file|mimes:webm,mp4,mov,avi|max:51200', // 50MB limit
+    //         ]);
+
+    //         $file = $request->file('video');
+
+    //         // Option 1: Save to storage
+    //         $path = $file->store('consult_videos/' . $tel->id, 'public');
+
+    //         // Option 2: Save as blob in DB (not recommended for large files)
+    //         // $binary = file_get_contents($file->getRealPath());
+    //         // DB::table('consults')->where('id', $request->consult_id)->update(['video' => $binary]);
+    //         $finish_time = now();
+    //         $create_data = [
+    //             'is_finished' => 1,
+    //             'finish_time' => $finish_time,
+    //         ];
+    //         $tel = $tel->update($create_data);
+
+    //         return response()->json([
+    //             'message' => 'Video saved successfully',
+    //             'path' => $path,
+    //         ]);
+    //     }
+    // }
+
     public function stopConsult(Request $request)
     {
         $tel = Teleconsult::find($request->consult_id);
-        if ($tel) {
-            $request->validate([
-                'consult_id' => 'required|integer',
-                'video' => 'required|file|mimes:webm,mp4,mov,avi|max:51200', // 50MB limit
-            ]);
-
-            $file = $request->file('video');
-
-            // Option 1: Save to storage
-            $path = $file->store('consult_videos/' . $tel->id, 'public');
-
-            // Option 2: Save as blob in DB (not recommended for large files)
-            // $binary = file_get_contents($file->getRealPath());
-            // DB::table('consults')->where('id', $request->consult_id)->update(['video' => $binary]);
-            $finish_time = now();
-            $create_data = [
-                'is_finished' => 1,
-                'finish_time' => $finish_time,
-            ];
-            $tel = $tel->update($create_data);
-
-            return response()->json([
-                'message' => 'Video saved successfully',
-                'path' => $path,
-            ]);
+        if (!$tel) {
+            return response()->json(['message' => 'Teleconsult not found'], 404);
         }
+
+        $request->validate([
+            'consult_id' => 'required|integer',
+            'video' => 'nullable|file|mimes:webm,mp4,mov,avi|max:51200', // now optional
+        ]);
+
+        $path = null;
+        if ($request->hasFile('video')) {
+            $path = $request->file('video')->store('consult_videos/' . $tel->id, 'public');
+        }
+
+        $tel->update([
+            'is_finished' => 1,
+            'finish_time' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Consultation ended successfully',
+            'path' => $path,
+        ]);
     }
 }

@@ -453,6 +453,7 @@ class TeleController extends Controller
             'data' => [
                 /* ===================== BASIC MEETING ===================== */
                 'meetID' => $meeting->id,
+                'patient_id' => $meeting->patient_id,
                 'facID' => $meeting->facID ?? null,
                 'case_no' => $meeting->demoprof->case_no ?? $meeting->id,
                 'date_meeting' => $meeting->date_meeting,

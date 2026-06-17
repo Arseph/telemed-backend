@@ -19,7 +19,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173'], // Add this origin
+    // 'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com'], // domain expired
+    'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com', 'http://192.168.1.75'],
 
     'allowed_origins_patterns' => [],
 

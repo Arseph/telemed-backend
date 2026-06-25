@@ -902,7 +902,7 @@ class TeleController extends Controller
     public function mycalendarMeetings(Request $req)
     {
         $user = Auth::user();
-        $data = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.lname as patLname', 'pat.fname as patFname', 'pat.mname as patMname', 'pat.id as PatID')->leftJoin('patients as pat', 'teleconsults.patient_id', '=', 'pat.id');
+        $data = Teleconsult::select('teleconsults.*', 'teleconsults.id as meetID', 'teleconsults.user_id as Creator', 'teleconsults.doctor_id as RequestTo', 'pat.pat_lname as patLname', 'pat.pat_fname as patFname', 'pat.pat_mname as patMname', 'pat.id as PatID')->leftJoin('tbl_master_patient as pat', 'teleconsults.patient_id', '=', 'pat.id');
         $data = $data
             ->where(function ($q) use ($user) {
                 $q->where('teleconsults.doctor_id', '=', $user->id)->orWhere('teleconsults.user_id', '=', $user->id);
@@ -924,6 +924,8 @@ class TeleController extends Controller
                 'end' => $value->date_meeting . 'T' . $value->to_time,
                 'allow' => $join,
                 'facility' => $value->doctor->facility->facilityname,
+                'patient' => trim(($value->patFname ?? '') . ' ' . ($value->patMname ? $value->patMname . ' ' : '') . ($value->patLname ?? '')),
+                'doctor' => $value->doctor ? trim(($value->doctor->fname ?? '') . ' ' . ($value->doctor->mname ? $value->doctor->mname . ' ' : '') . ($value->doctor->lname ?? '')) : null,
             ];
             array_push($result, $values);
         }

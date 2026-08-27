@@ -678,7 +678,8 @@ class TeleController extends Controller
     public function getMunicipalCities()
     {
         try {
-            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode']);
+            // prov_psgc is what lets the client filter cities by the chosen province.
+            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode', 'prov_psgc']);
             return response()->json(['status' => 'success', 'data' => $cities]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);

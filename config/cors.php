@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
@@ -19,7 +18,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173'], // Add this origin
+    // 'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com'], // domain expired
+    'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com', 'http://192.168.1.75', 'http://10.10.124.140:5173'],
 
     'allowed_origins_patterns' => [],
 
@@ -30,5 +30,4 @@ return [
     'max_age' => 0,
 
     'supports_credentials' => true,
-
 ];

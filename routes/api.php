@@ -199,6 +199,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/validate-datetime', [TeleController::class, 'validateDateTime']);
     Route::get('/admin-meeting-info', [TeleController::class, 'adminMeetingInfo']);
     Route::get('/meeting-info', [TeleController::class, 'meetingInfo']);
+    Route::get('/meeting-infoV2', [TeleController::class, 'meetingInfoV2']);
     Route::get('/get-pending-meeting/{id}', [TeleController::class, 'getPendingMeeting']);
     Route::post('/accept-decline-meeting/{id}', [TeleController::class, 'acceptDeclineMeeting']);
     Route::get('/doctor-order-info', [TeleController::class, 'getDocOrder']);

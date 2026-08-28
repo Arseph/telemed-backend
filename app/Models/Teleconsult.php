@@ -62,11 +62,18 @@ class Teleconsult extends Model implements Auditable
 
         $pat = $this->patient;
 
-        // You can cast varchar→int for joins if needed
+        $provcode = $pat->provcode;
+        $citycode = $pat->citycode;
+        $bgycode  = $pat->bgycode;
+
+        if (!is_numeric($provcode) || !is_numeric($citycode) || !is_numeric($bgycode)) {
+            return null;
+        }
+
         $address = DB::table('provinces as provp')
-            ->leftJoin('municipal_cities as munp', 'munp.muni_psgc', '=', DB::raw('CAST('.$pat->citycode.' AS UNSIGNED)'))
-            ->leftJoin('barangays as brgyp', 'brgyp.brg_psgc', '=', DB::raw('CAST('.$pat->bgycode.' AS UNSIGNED)'))
-            ->where('provp.prov_psgc', DB::raw('CAST('.$pat->provcode.' AS UNSIGNED)'))
+            ->leftJoin('municipal_cities as munp', 'munp.muni_psgc', '=', DB::raw('CAST('.intval($citycode).' AS UNSIGNED)'))
+            ->leftJoin('barangays as brgyp', 'brgyp.brg_psgc', '=', DB::raw('CAST('.intval($bgycode).' AS UNSIGNED)'))
+            ->where('provp.prov_psgc', DB::raw('CAST('.intval($provcode).' AS UNSIGNED)'))
             ->select(
                 'provp.prov_name as province',
                 'munp.muni_name as city',

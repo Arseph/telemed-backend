@@ -50,11 +50,9 @@ class PatientV2Controller extends Controller
             });
         }
 
-        // ✅ Paginate
-        $patients = $query->paginate(20);
+        $patients = $query->get();
 
-        // ✅ Map to include barangay name directly
-        $patients->getCollection()->transform(function ($p) {
+        $patients->transform(function ($p) {
             $p->brg_name = $p->barangay->brg_name ?? null;
             return $p;
         });

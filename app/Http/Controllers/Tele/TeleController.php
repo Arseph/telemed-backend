@@ -1052,6 +1052,21 @@ class TeleController extends Controller
             'finish_time' => now(),
         ]);
 
+        // Tell the other participant, so their teleconsultation list shows this as
+        // finished without waiting for a manual refresh. Only the other one — the
+        // person who just clicked End does not need telling.
+        $endedBy = optional($request->user())->id;
+        foreach (array_unique([$tel->user_id, $tel->doctor_id]) as $notifyId) {
+            if ($notifyId && $notifyId !== $endedBy) {
+                PusherHelper::trigger('my-channel.' . $notifyId, 'my-event.' . $notifyId, [
+                    'title' => 'Teleconsultation - ' . $tel->title . ' Finished',
+                    'subtitle' => 'The consultation has ended.',
+                    'time' => Carbon::now()->toDateTimeString(),
+                    'isSeen' => false,
+                ]);
+            }
+        }
+
         return response()->json([
             'message' => 'Consultation ended successfully',
             'path' => $path,

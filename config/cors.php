@@ -20,7 +20,7 @@ return [
 
     // NOTE: dohsox.com lapsed and is now registered by a third party - never re-add it
     // here; supports_credentials is true, so cookies would be sent to whoever owns it.
-    'allowed_origins' => ['https://telemed.doh12.com', 'http://180.193.207.212', 'http://localhost:5173'],
+    'allowed_origins' => ['https://telemed.doh12.com', 'http://180.193.207.212', 'http://localhost:5173', 'http://127.0.0.1:5173'],
 
     'allowed_origins_patterns' => [],
 

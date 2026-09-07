@@ -678,7 +678,8 @@ class TeleController extends Controller
     public function getMunicipalCities()
     {
         try {
-            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode']);
+            // prov_psgc is what lets the client filter cities by the chosen province.
+            $cities = MunicipalCity::orderBy('muni_name')->get(['muni_psgc', 'muni_name', 'zipcode', 'prov_psgc']);
             return response()->json(['status' => 'success', 'data' => $cities]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'line' => $e->getLine()], 500);
@@ -1050,6 +1051,21 @@ class TeleController extends Controller
             'is_finished' => 1,
             'finish_time' => now(),
         ]);
+
+        // Tell the other participant, so their teleconsultation list shows this as
+        // finished without waiting for a manual refresh. Only the other one — the
+        // person who just clicked End does not need telling.
+        $endedBy = optional($request->user())->id;
+        foreach (array_unique([$tel->user_id, $tel->doctor_id]) as $notifyId) {
+            if ($notifyId && $notifyId !== $endedBy) {
+                PusherHelper::trigger('my-channel.' . $notifyId, 'my-event.' . $notifyId, [
+                    'title' => 'Teleconsultation - ' . $tel->title . ' Finished',
+                    'subtitle' => 'The consultation has ended.',
+                    'time' => Carbon::now()->toDateTimeString(),
+                    'isSeen' => false,
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Consultation ended successfully',

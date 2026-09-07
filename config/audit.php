@@ -28,7 +28,11 @@ return [
         'morph_prefix' => 'user',
         'guards'       => [
             'web',
-            'api'
+            // The SPA authenticates with Sanctum, so that is the guard the user has to
+            // be resolved from. This previously read 'api', a guard that is not defined at
+            // all — UserResolver swallows the exception and moves on, so every audit row
+            // was written with a null user_id.
+            'sanctum',
         ],
         'resolver'     => OwenIt\Auditing\Resolvers\UserResolver::class
     ],

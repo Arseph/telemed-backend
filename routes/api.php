@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Patient\MedicalHistoryController as PatientMedicalHistoryController;
 use App\Http\Controllers\Admin\HomeController as AdminHomeController;
 use App\Http\Controllers\Admin\ManageController as AdminManageController;
 use App\Http\Controllers\Admin\TeleController as AdminTeleController;
@@ -120,6 +121,24 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/docorder-delete/{id}', [DoctorManageController::class, 'docorderDelete']);
     Route::post('/medical-history-store', [DoctorPatientController::class, 'medHisStore']);
     Route::get('/medical-history-info', [DoctorPatientController::class, 'medHisData']);
+
+    // Medical history for the patient profile. The two routes above are dead —
+    // their controller imports AppMedicalHistory / AppDiagnosis, which no
+    // longer exist, and they return Session flash rather than JSON.
+    Route::get('/medical-history/{patient_id}', [PatientMedicalHistoryController::class, 'show']);
+    Route::post('/medical-history', [PatientMedicalHistoryController::class, 'store']);
+    Route::get('/diagnosis-search', [PatientMedicalHistoryController::class, 'searchDiagnosis']);
+    Route::get('/diagnosis-main-categories', [PatientMedicalHistoryController::class, 'mainCategories']);
+    Route::get('/diagnosis-sub-categories-by-main', [PatientMedicalHistoryController::class, 'subCategories']);
+
+    // Problem list: the conditions a patient carries, one row each.
+    Route::get('/patient-problems/{patient_id}', [PatientMedicalHistoryController::class, 'problems']);
+    Route::post('/patient-problems', [PatientMedicalHistoryController::class, 'storeProblem']);
+    Route::delete('/patient-problems/{id}', [PatientMedicalHistoryController::class, 'destroyProblem']);
+
+    // Point-in-time history. Pass meeting_id to see the state at a consultation.
+    Route::get('/medical-history-snapshots/{patient_id}', [PatientMedicalHistoryController::class, 'snapshots']);
+    Route::get('/medical-history-snapshot/{id}', [PatientMedicalHistoryController::class, 'showSnapshot']);
     Route::get('/get-patient-eref', [DoctorPatientController::class, 'getPatientEref']);
     Route::post('/doc-cat-complete-profile', [DoctorManageController::class, 'doccatcomplete']);
 

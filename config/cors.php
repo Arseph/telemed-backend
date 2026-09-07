@@ -20,7 +20,7 @@ return [
     'allowed_methods' => ['*'],
 
     // 'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com'], // domain expired
-    'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com', 'http://192.168.1.75'],
+    'allowed_origins' => ['http://localhost:5173', 'https://telemed-dev.dohsox.com', 'http://180.193.207.212', 'https://telemed.doh12.com'],
 
     'allowed_origins_patterns' => [],
 

@@ -37,7 +37,7 @@ use App\Models\ClinicalHistory;
 use App\Models\PhysicalExam;
 use App\Models\CovidScreening;
 use App\Models\CovidAssessment;
-use App\Models\diagnosisAssessment;
+use App\Models\DiagnosisAssessment;
 use App\Models\PlanManagement;
 
 use App\Models\PatientV2;

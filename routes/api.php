@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\HomeController as AdminHomeController;
 use App\Http\Controllers\Admin\ManageController as AdminManageController;
 use App\Http\Controllers\Admin\TeleController as AdminTeleController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PwResetCtrl;
 use App\Http\Controllers\Doctor\HomeController as DoctorHomeController;
 use App\Http\Controllers\Doctor\IssueConcernCtrl;
@@ -13,9 +12,7 @@ use App\Http\Controllers\Doctor\ManageController as DoctorManageController;
 use App\Http\Controllers\Doctor\PatientController as DoctorPatientController;
 use App\Http\Controllers\Patient\PatientV2Controller;
 use App\Http\Controllers\Doctor\TeleConsultController as DoctorTeleConsultController;
-use App\Http\Controllers\FeedbackCtrl;
 use App\Http\Controllers\Manage\DtrController;
-use App\Http\Controllers\Notification\NotiFController;
 use App\Http\Controllers\Patient\HomeController as PatientHomeController;
 use App\Http\Controllers\Patient\PatientController as PatientPatientController;
 use App\Http\Controllers\ProfileCtrl;
@@ -49,13 +46,6 @@ Route::group(['prefix' => 'employee'], function () {
 });
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::post('register-account', [LoginController::class, 'register']);
-    Route::get('/places/{id}/{type}', [LoginController::class, 'getMunandBrgy']);
-    Route::get('/get-doctor/{id}', [LoginController::class, 'getDoctor']);
-    Route::get('/validate-email', [LoginController::class, 'validateEmail']);
-    Route::get('/validate-username', [LoginController::class, 'validateUsername']);
-    Route::post('change-password', [LoginController::class, 'changePassword']);
-
     // Superadmin Module
     Route::get('superadmin', [SuperadminHomeController::class, 'index']);
     Route::get('/users', [SuperadminManageController::class, 'indexUser']);
@@ -196,13 +186,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('superadim/audit-trail', [AuditTrailCtrl::class, 'index']);
     Route::post('superadim/audit-trail', [AuditTrailCtrl::class, 'index']);
 
-    // Feedback
-    Route::match(['get', 'post'], 'feedback', [FeedbackCtrl::class, 'index']);
-    Route::match(['get', 'post'], 'feedback/view', [FeedbackCtrl::class, 'view']);
-    Route::match(['get', 'post'], 'superadmin/feedback', [FeedbackCtrl::class, 'sindex']);
-    Route::post('superadmin/sfeedback_body', [FeedbackCtrl::class, 'sindexBody']);
-    Route::post('superadmin/feedback/response', [FeedbackCtrl::class, 'sfeedbackResponse']);
-
     // Issue and Concern
     Route::match(['get', 'post'], 'doctor/issuesconcern', [IssueConcernCtrl::class, 'index']);
     Route::get('issue/concern/{meet_id}/{issue_from}', [IssueConcernCtrl::class, 'IssueAndConcern']);
@@ -261,8 +244,4 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/start-consult', [TeleController::class, 'startConsult']);
     Route::post('/stop-consult', [TeleController::class, 'stopConsult']);
 
-    // Notification
-    Route::get('/fetch-notification', [NotiFController::class, 'fetchNotif']);
-    Route::get('/notif-patient-info/{id}', [NotiFController::class, 'patientInfo']);
-    Route::post('/notif-patient-accept/{id}', [NotiFController::class, 'patientAccept']);
 });

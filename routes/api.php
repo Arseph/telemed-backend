@@ -36,13 +36,15 @@ Route::group(['prefix' => 'auth'], function () {
     // Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::get('validate-token', [AuthController::class, 'validateToken']);
-        // Manage Users
-        Route::get('users', [UserController::class, 'users']);
-        Route::post('users', [UserController::class, 'store']);
-        Route::delete('/users/{id}', [UserController::class, 'destroy']);
-        Route::post('/users/{id}', [UserController::class, 'update']);
-        Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);
-        Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        // Manage Users — office network + account managers only
+        Route::group(['middleware' => ['lan.only', 'auth:sanctum', 'account.manager']], function () {
+            Route::get('users', [UserController::class, 'users']);
+            Route::post('users', [UserController::class, 'store']);
+            Route::delete('/users/{id}', [UserController::class, 'destroy']);
+            Route::post('/users/{id}', [UserController::class, 'update']);
+            Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);
+            Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        });
         // Route::get('users', [AuthController::class, 'users']);
         Route::get('dtr', [DtrController::class, 'dtr']);
     // });
@@ -58,8 +60,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     // Superadmin Module
     Route::get('superadmin', [SuperadminHomeController::class, 'index']);
     Route::get('/users', [SuperadminManageController::class, 'indexUser']);
-    Route::post('/user-deactivate/{id}', [SuperadminManageController::class, 'deactivateUser']);
-    Route::post('/user-store', [SuperadminManageController::class, 'storeUser']);
+    Route::group(['middleware' => ['lan.only', 'account.manager']], function () {
+        Route::post('/user-deactivate/{id}', [SuperadminManageController::class, 'deactivateUser']);
+        Route::post('/user-store', [SuperadminManageController::class, 'storeUser']);
+    });
     Route::get('/facilities', [SuperadminManageController::class, 'indexFacility']);
     Route::get('/facilities/{id}/{type}', [SuperadminManageController::class, 'getMunandBrgy']);
     Route::post('/facility-store', [SuperadminManageController::class, 'storeFacility']);

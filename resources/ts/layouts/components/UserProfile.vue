@@ -39,7 +39,7 @@ const logout = async () => {
       confirmButtonText: 'Yes',
     }).then(result => {
       if (result.isConfirmed) {
-        const response = async () => await axios.get('http://127.0.0.1:8000/api/auth/logout', {
+        const response = async () => await axios.get('/api/auth/logout', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           },

@@ -13,6 +13,7 @@ use App\Http\Controllers\Doctor\PatientController as DoctorPatientController;
 use App\Http\Controllers\Patient\PatientV2Controller;
 use App\Http\Controllers\Doctor\TeleConsultController as DoctorTeleConsultController;
 use App\Http\Controllers\Manage\DtrController;
+use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Patient\HomeController as PatientHomeController;
 use App\Http\Controllers\Patient\PatientController as PatientPatientController;
 use App\Http\Controllers\ProfileCtrl;
@@ -32,13 +33,21 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('password/email', [PwResetCtrl::class, 'sendResetLink']);
     Route::post('password/reset', [PwResetCtrl::class, 'resetPassword']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::group(['middleware' => 'auth:sanctum'], function () {
+    // Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('logout', [AuthController::class, 'logout']);
         Route::get('validate-token', [AuthController::class, 'validateToken']);
-        Route::get('users', [AuthController::class, 'users']);
+        // Manage Users
+        Route::get('users', [UserController::class, 'users']);
+        Route::post('users', [UserController::class, 'store']);
+        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+        Route::post('/users/{id}', [UserController::class, 'update']);
+        Route::post('/users/{id}/deactivate', [UserController::class, 'deactivate']);
+        Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
+        // Route::get('users', [AuthController::class, 'users']);
         Route::get('dtr', [DtrController::class, 'dtr']);
-    });
+    // });
 });
+
 Route::group(['prefix' => 'employee'], function () {
     Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('me', [ProfileCtrl::class, 'me']);

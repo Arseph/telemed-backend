@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\Patient\MedicalHistoryController as PatientMedicalHistoryController;
 use App\Http\Controllers\Admin\HomeController as AdminHomeController;
 use App\Http\Controllers\Admin\ManageController as AdminManageController;
 use App\Http\Controllers\Admin\TeleController as AdminTeleController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PwResetCtrl;
 use App\Http\Controllers\Doctor\HomeController as DoctorHomeController;
 use App\Http\Controllers\Doctor\IssueConcernCtrl;
@@ -12,9 +12,7 @@ use App\Http\Controllers\Doctor\ManageController as DoctorManageController;
 use App\Http\Controllers\Doctor\PatientController as DoctorPatientController;
 use App\Http\Controllers\Patient\PatientV2Controller;
 use App\Http\Controllers\Doctor\TeleConsultController as DoctorTeleConsultController;
-use App\Http\Controllers\FeedbackCtrl;
 use App\Http\Controllers\Manage\DtrController;
-use App\Http\Controllers\Notification\NotiFController;
 use App\Http\Controllers\Patient\HomeController as PatientHomeController;
 use App\Http\Controllers\Patient\PatientController as PatientPatientController;
 use App\Http\Controllers\ProfileCtrl;
@@ -48,13 +46,6 @@ Route::group(['prefix' => 'employee'], function () {
 });
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::post('register-account', [LoginController::class, 'register']);
-    Route::get('/places/{id}/{type}', [LoginController::class, 'getMunandBrgy']);
-    Route::get('/get-doctor/{id}', [LoginController::class, 'getDoctor']);
-    Route::get('/validate-email', [LoginController::class, 'validateEmail']);
-    Route::get('/validate-username', [LoginController::class, 'validateUsername']);
-    Route::post('change-password', [LoginController::class, 'changePassword']);
-
     // Superadmin Module
     Route::get('superadmin', [SuperadminHomeController::class, 'index']);
     Route::get('/users', [SuperadminManageController::class, 'indexUser']);
@@ -120,6 +111,24 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/docorder-delete/{id}', [DoctorManageController::class, 'docorderDelete']);
     Route::post('/medical-history-store', [DoctorPatientController::class, 'medHisStore']);
     Route::get('/medical-history-info', [DoctorPatientController::class, 'medHisData']);
+
+    // Medical history for the patient profile. The two routes above are dead —
+    // their controller imports AppMedicalHistory / AppDiagnosis, which no
+    // longer exist, and they return Session flash rather than JSON.
+    Route::get('/medical-history/{patient_id}', [PatientMedicalHistoryController::class, 'show']);
+    Route::post('/medical-history', [PatientMedicalHistoryController::class, 'store']);
+    Route::get('/diagnosis-search', [PatientMedicalHistoryController::class, 'searchDiagnosis']);
+    Route::get('/diagnosis-main-categories', [PatientMedicalHistoryController::class, 'mainCategories']);
+    Route::get('/diagnosis-sub-categories-by-main', [PatientMedicalHistoryController::class, 'subCategories']);
+
+    // Problem list: the conditions a patient carries, one row each.
+    Route::get('/patient-problems/{patient_id}', [PatientMedicalHistoryController::class, 'problems']);
+    Route::post('/patient-problems', [PatientMedicalHistoryController::class, 'storeProblem']);
+    Route::delete('/patient-problems/{id}', [PatientMedicalHistoryController::class, 'destroyProblem']);
+
+    // Point-in-time history. Pass meeting_id to see the state at a consultation.
+    Route::get('/medical-history-snapshots/{patient_id}', [PatientMedicalHistoryController::class, 'snapshots']);
+    Route::get('/medical-history-snapshot/{id}', [PatientMedicalHistoryController::class, 'showSnapshot']);
     Route::get('/get-patient-eref', [DoctorPatientController::class, 'getPatientEref']);
     Route::post('/doc-cat-complete-profile', [DoctorManageController::class, 'doccatcomplete']);
 
@@ -137,7 +146,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/demographic-store', [PatientPatientController::class, 'demographicStore']);
     Route::post('/physical-exam-store', [PatientPatientController::class, 'phyExamStore']);
     Route::get('/clinical-info', [PatientPatientController::class, 'clinicalInfo']);
-    //patient v2  
+    //patient v2
     Route::get('/patients', [PatientV2Controller::class, 'index']);
     Route::post('/patients/store-or-update', [PatientV2Controller::class, 'storeOrUpdate']);
     Route::get('/patients/{id}', [PatientV2Controller::class, 'show']);
@@ -177,13 +186,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('superadim/audit-trail', [AuditTrailCtrl::class, 'index']);
     Route::post('superadim/audit-trail', [AuditTrailCtrl::class, 'index']);
 
-    // Feedback
-    Route::match(['get', 'post'], 'feedback', [FeedbackCtrl::class, 'index']);
-    Route::match(['get', 'post'], 'feedback/view', [FeedbackCtrl::class, 'view']);
-    Route::match(['get', 'post'], 'superadmin/feedback', [FeedbackCtrl::class, 'sindex']);
-    Route::post('superadmin/sfeedback_body', [FeedbackCtrl::class, 'sindexBody']);
-    Route::post('superadmin/feedback/response', [FeedbackCtrl::class, 'sfeedbackResponse']);
-
     // Issue and Concern
     Route::match(['get', 'post'], 'doctor/issuesconcern', [IssueConcernCtrl::class, 'index']);
     Route::get('issue/concern/{meet_id}/{issue_from}', [IssueConcernCtrl::class, 'IssueAndConcern']);
@@ -199,6 +201,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/validate-datetime', [TeleController::class, 'validateDateTime']);
     Route::get('/admin-meeting-info', [TeleController::class, 'adminMeetingInfo']);
     Route::get('/meeting-info', [TeleController::class, 'meetingInfo']);
+    Route::get('/meeting-infoV2', [TeleController::class, 'meetingInfoV2']);
     Route::get('/get-pending-meeting/{id}', [TeleController::class, 'getPendingMeeting']);
     Route::post('/accept-decline-meeting/{id}', [TeleController::class, 'acceptDeclineMeeting']);
     Route::get('/doctor-order-info', [TeleController::class, 'getDocOrder']);
@@ -214,21 +217,21 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/get-prescription-details', [TeleController::class, 'getPrescription']);
     Route::post('/decline-tele/{id}', [TeleController::class, 'declineTele']);
     //new controller routes for forms
-    Route::get('/get-demoprofile/{meeting_id}', [TeleController::class, 'getDP']); // fetch DP 
+    Route::get('/get-demoprofile/{meeting_id}', [TeleController::class, 'getDP']); // fetch DP
     Route::post('/save-demoprofile', [TeleController::class, 'storeDP']); //save dp
-    Route::get('/get-clinicalhistory/{meeting_id}', [TeleController::class, 'getCH']); // fetch ch 
+    Route::get('/get-clinicalhistory/{meeting_id}', [TeleController::class, 'getCH']); // fetch ch
     Route::post('/save-clinicalhistory', [TeleController::class, 'storeCH']); //save ch
-    Route::get('/get-physicalexam/{meeting_id}', [TeleController::class, 'getPE']); // fetch pe 
+    Route::get('/get-physicalexam/{meeting_id}', [TeleController::class, 'getPE']); // fetch pe
     Route::post('/save-physicalexam', [TeleController::class, 'storePE']); //save pe
     Route::get('/tele/facilities', [TeleController::class, 'getFacilities']); //fetch facility list
-    Route::get('/get-covidscreening/{meeting_id}', [TeleController::class, 'getCV']); // fetch cv 
+    Route::get('/get-covidscreening/{meeting_id}', [TeleController::class, 'getCV']); // fetch cv
     Route::post('/save-covidscreening', [TeleController::class, 'storeCV']); //save cv
     Route::get('/tele/countries', [TeleController::class, 'getCountries']); //fetch country list
     Route::get('/tele/regions', [TeleController::class, 'getRegions']); //fetch region list
     Route::get('/tele/provinces', [TeleController::class, 'getProvinces']);
     Route::get('/tele/cities', [TeleController::class, 'getMunicipalCities']);
     Route::get('/tele/barangays', [TeleController::class, 'getBarangays']);
-    Route::get('/get-covidassessment/{meeting_id}', [TeleController::class, 'getCA']); // fetch ca 
+    Route::get('/get-covidassessment/{meeting_id}', [TeleController::class, 'getCA']); // fetch ca
     Route::post('/save-covidassessment', [TeleController::class, 'storeCA']); //save ca
     Route::get('/get-diagnosisassessment/{meeting_id}', [TeleController::class, 'getDA']); // fetch da
     Route::post('/save-diagnosisassessment', [TeleController::class, 'storeDA']); //save da
@@ -241,9 +244,4 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/start-consult', [TeleController::class, 'startConsult']);
     Route::post('/stop-consult', [TeleController::class, 'stopConsult']);
 
-    // Notification
-    Route::get('/fetch-notification', [NotiFController::class, 'fetchNotif']);
-    Route::get('/notif-patient-info/{id}', [NotiFController::class, 'patientInfo']);
-    Route::post('/notif-patient-accept/{id}', [NotiFController::class, 'patientAccept']);
 });
-

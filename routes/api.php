@@ -53,6 +53,10 @@ Route::group(['prefix' => 'auth'], function () {
 Route::group(['prefix' => 'employee'], function () {
     Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('me', [ProfileCtrl::class, 'me']);
+        Route::get('profile-pic', [ProfileCtrl::class, 'profile']);
+        Route::post('store/profile', [ProfileCtrl::class, 'storeProfile']);
+        Route::post('store/profile-pic', [ProfileCtrl::class, 'storeProfilePic']);
+        Route::post('store/security', [ProfileCtrl::class, 'storeSecurity']);
     });
 });
 

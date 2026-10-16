@@ -55,6 +55,17 @@ const login = async () => {
 
     localStorage.setItem('authToken', token)
     localStorage.setItem('name', name)
+
+    if (response.data.picture)
+      localStorage.setItem('picture', response.data.picture)
+    else
+      localStorage.removeItem('picture')
+
+    if (response.data.role)
+      localStorage.setItem('role', response.data.role)
+    else
+      localStorage.removeItem('role')
+
     router.push('/')
   }
   catch (error) {
@@ -68,7 +79,7 @@ const login = async () => {
   <RouterLink to="/">
     <div class="auth-logo d-flex align-center gap-x-3">
       <h1 class="auth-title">
-        Database Management System
+        Telemed Management System
       </h1>
     </div>
   </RouterLink>
@@ -113,7 +124,7 @@ const login = async () => {
             Welcome to <span class="text-capitalize"> {{ themeConfig.app.title }} </span>
           </h4>
           <p class="mb-0">
-            Please login using your HRMIS acoount
+            Please sign in to your account
           </p>
         </VCardText>
         <VCardText>

@@ -213,7 +213,7 @@ class TeleController extends Controller
         $decid = Crypt::decrypt($id);
         $meetings = Teleconsult::select('teleconsults.*', 'pat.id as PATID', 'teleconsults.id as meetID')->leftJoin('patients as pat', 'pat.id', '=', 'teleconsults.patient_id')->where('teleconsults.id', $decid)->first();
         $title = $meetings->title;
-        $emailname = Crypt::decrypt($meetings->doctor->email);
+        $emailname = $meetings->doctor->email;
         $password = $meetings->password;
         $role = $meetings->doctor_id == $user->id ? 1 : 0;
         $username = $user->fname . ' ' . $user->mname . ' ' . $user->lname;

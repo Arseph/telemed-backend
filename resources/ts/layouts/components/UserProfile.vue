@@ -5,15 +5,26 @@ import { onMounted, ref } from 'vue'
 
 const name = ref<string>('')
 const token = ref<string>('')
+const picture = ref<string>('')
+const role = ref<string>('')
 const router = useRouter()
 
 onMounted(() => {
   token.value = localStorage.getItem('authToken') || ''
   name.value = localStorage.getItem('name') || 'Guest'
+  picture.value = localStorage.getItem('picture') || ''
+  role.value = localStorage.getItem('role') || ''
 })
 
 const firstLetter = computed(() => {
   return name.value.charAt(0).toUpperCase()
+})
+
+const roleLabel = computed(() => {
+  if (!role.value)
+    return 'User'
+
+  return role.value.charAt(0).toUpperCase() + role.value.slice(1)
 })
 
 const logout = async () => {
@@ -70,7 +81,14 @@ const logout = async () => {
         color="primary"
         size="56"
       >
-        <span class="avatar-letter">{{ firstLetter }}</span>
+        <VImg
+          v-if="picture"
+          :src="picture"
+        />
+        <span
+          v-else
+          class="avatar-letter"
+        >{{ firstLetter }}</span>
       </VAvatar>
 
       <!-- SECTION Menu -->
@@ -104,7 +122,7 @@ const logout = async () => {
             <VListItemTitle class="font-weight-semibold">
               {{ name }}
             </VListItemTitle>
-            <VListItemSubtitle>Superadmin</VListItemSubtitle>
+            <VListItemSubtitle>{{ roleLabel }}</VListItemSubtitle>
           </VListItem>
 
           <VDivider class="my-2" />

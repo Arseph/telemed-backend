@@ -93,7 +93,7 @@ class ManageController extends Controller
             'facility_id' => $req->facility_id,
             'status' => 'active',
             'contact' => $req->contact,
-            'email' => Crypt::encrypt($req->email),
+            'email' => $req->email,
             'designation' => $req->designation,
             'username' => $req->username,
         );

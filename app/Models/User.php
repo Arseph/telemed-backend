@@ -40,7 +40,8 @@ class User extends Authenticatable implements Auditable
         'status',
         'last_login',
         'login_status',
-        'void'
+        'void',
+        'eref',
     ];
 
     /**

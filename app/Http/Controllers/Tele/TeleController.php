@@ -260,7 +260,7 @@ class TeleController extends Controller
             ->where('teleconsults.id', $decid)
             ->first();
         $title = $meetings->title;
-        $emailname = Crypt::decrypt($meetings->doctor->email);
+        $emailname = $meetings->doctor->email;
         $password = $meetings->password;
         $role = $meetings->doctor_id == $user->id ? 1 : 0;
         $username = $user->fname.' '.$user->mname.' '.$user->lname;

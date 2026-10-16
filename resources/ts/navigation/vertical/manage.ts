@@ -7,10 +7,6 @@ export default [
         title: 'Users',
         to: { name: 'Users' },
       },
-      {
-        title: 'DTR Management',
-        to: { name: 'Dtr' },
-      },
     ],
   },
 ]

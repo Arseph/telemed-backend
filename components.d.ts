@@ -68,6 +68,5 @@ declare module 'vue' {
     UserInfoEditDialog: typeof import('./resources/ts/components/dialogs/UserInfoEditDialog.vue')['default']
     UserUpgradePlanDialog: typeof import('./resources/ts/components/dialogs/UserUpgradePlanDialog.vue')['default']
     VideoConference: typeof import('./resources/ts/components/VideoConference.vue')['default']
-    VueApexCharts: typeof import('vue3-apexcharts')['default']
   }
 }

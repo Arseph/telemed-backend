@@ -85,9 +85,9 @@ class Teleconsult extends Model implements Auditable
         }
 
         $address = DB::table('provinces as provp')
-            ->leftJoin('municipal_cities as munp', 'munp.muni_psgc', '=', DB::raw('CAST('.intval($citycode).' AS UNSIGNED)'))
-            ->leftJoin('barangays as brgyp', 'brgyp.brg_psgc', '=', DB::raw('CAST('.intval($bgycode).' AS UNSIGNED)'))
-            ->where('provp.prov_psgc', DB::raw('CAST('.intval($provcode).' AS UNSIGNED)'))
+            ->leftJoin('municipal_cities as munp', 'munp.muni_psgc', '=', DB::raw('CAST(' . intval($citycode) . ' AS UNSIGNED)'))
+            ->leftJoin('barangays as brgyp', 'brgyp.brg_psgc', '=', DB::raw('CAST(' . intval($bgycode) . ' AS UNSIGNED)'))
+            ->where('provp.prov_psgc', DB::raw('CAST(' . intval($provcode) . ' AS UNSIGNED)'))
             ->select(
                 'provp.prov_name as province',
                 'munp.muni_name as city',
@@ -113,5 +113,60 @@ class Teleconsult extends Model implements Auditable
         $address = DB::table('facilities as fac')->leftJoin('regions as reg', 'reg.reg_psgc', '=', 'fac.reg_psgc')->leftJoin('provinces as prov', 'prov.prov_psgc', '=', 'fac.prov_psgc')->leftJoin('municipal_cities as mun', 'mun.muni_psgc', '=', 'fac.muni_psgc')->leftJoin('barangays as brgy', 'brgy.brg_psgc', '=', 'fac.brgy_psgc')->where('fac.id', $facId)->select(DB::raw("CONCAT_WS(', ', brgy.brg_name, mun.muni_name, prov.prov_name, reg.reg_desc, fac.facilityname) as full_address"))->first();
 
         return $address ? $address->full_address : null;
+    }
+
+    // ---- Form access
+
+    // The doctor category that marks a referring RHU user. Every other category is a doctor.
+    public const RHU_CATEGORY = 'RHU Referring';
+
+    /** requester | accepter | null, from the side of the call the user is on. */
+    public function roleFor(?int $userId): ?string
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        // user_id is the user who encoded (requested) the consultation and doctor_id is
+        // the doctor it was requested to. The Vue pages call these Creator and RequestTo.
+        return match (true) {
+            (int) $this->user_id   === $userId => 'requester',
+            (int) $this->doctor_id === $userId => 'accepter',
+            default => null,
+        };
+    }
+
+    /** The user's doctor category name, or null if they have none. */
+    public function categoryOf(?int $userId): ?string
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        // Same model as the `doctor` relation, looked up by the user's id.
+        return $this->doctor()->getRelated()->find($userId)?->doccat?->category_name;
+    }
+
+    /**
+     * What this user may do with this meeting's forms.
+     *   role     = whose form is "their own": requester | accepter
+     *   can_edit = false means read only
+     *   null     = no access at all
+     */
+    public function accessFor(?int $userId): ?array
+    {
+        if ($role = $this->roleFor($userId)) {
+            return ['role' => $role, 'can_edit' => true];
+        }
+
+        // Not on the call: any doctor (anyone whose category is not RHU Referring) may
+        // read the consultation as the accepting doctor sees it, with both forms. Read only.
+        $category = $this->categoryOf($userId);
+
+        if ($category !== null && mb_strtolower(trim($category)) !== mb_strtolower(self::RHU_CATEGORY)) {
+            return ['role' => 'accepter', 'can_edit' => false];
+        }
+
+        return null;
     }
 }

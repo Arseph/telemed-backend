@@ -447,10 +447,52 @@ class TeleController extends Controller
             'meet_id' => 'required|exists:teleconsults,id',
         ]);
 
-        $meeting = Teleconsult::with(['patient', 'doctor', 'pendmeet', 'encoded', 'docorder', 'clinical', 'covidassess', 'covidscreen', 'diagassess', 'planmanage', 'phyexam', 'demoprof'])->findOrFail($request->meet_id);
+        // The seven form relations are NOT eager loaded here any more: each meeting
+        // can now have one row per role, so they are loaded below for this user only.
+        $meeting = Teleconsult::with(['patient', 'doctor', 'pendmeet', 'encoded', 'docorder'])->findOrFail($request->meet_id);
+
+        $access = $meeting->accessFor($request->user()?->id);
+        abort_if(!$access, 403, 'You do not have access to this consultation.');
+        $role = $access['role'];
+
+        // Only this user's own forms. The other participant's rows are available
+        // through the get-* endpoints, which return them as `other`.
+        $meeting->load([
+            'clinical'    => fn($q) => $q->forRole($role),
+            'covidassess' => fn($q) => $q->forRole($role),
+            'covidscreen' => fn($q) => $q->forRole($role),
+            'diagassess'  => fn($q) => $q->forRole($role),
+            'planmanage'  => fn($q) => $q->forRole($role),
+            'phyexam'     => fn($q) => $q->forRole($role),
+            'demoprof'    => fn($q) => $q->forRole($role),
+        ]);
+
+        // Doctors (the accepting side) can also read the requester's copy of each form,
+        // read only. The requester (RHU) never receives the doctor's forms.
+        $other = null;
+        if ($role === 'accepter') {
+            $other = [];
+            $forms = [
+                'demographic_profile' => \App\Models\DemoProfile::class,
+                'clinical_history'    => \App\Models\ClinicalHistory::class,
+                'covid_assessment'    => \App\Models\CovidAssessment::class,
+                'covid_screening'     => \App\Models\CovidScreening::class,
+                'diagnosis'           => \App\Models\DiagnosisAssessment::class,
+                'plan_management'     => \App\Models\PlanManagement::class,
+                'physical_exam'       => \App\Models\PhysicalExam::class,
+            ];
+
+            foreach ($forms as $key => $model) {
+                $other[$key] = $model::where('meeting_id', $meeting->id)->forRole('requester')->first();
+            }
+        }
 
         return response()->json([
             'data' => [
+                'my_role' => $role,
+                'can_edit' => $access['can_edit'],
+                'other' => $other,
+
                 /* ===================== BASIC MEETING ===================== */
                 'meetID' => $meeting->id,
                 'patient_id' => $meeting->patient_id,
@@ -516,6 +558,7 @@ class TeleController extends Controller
             ],
         ]);
     }
+
 
     //tele forms
     //use custom app service

@@ -148,15 +148,28 @@ class Teleconsult extends Model implements Auditable
     }
 
     /**
+     * True once the call has been ended (stopConsult sets it). The column is an int
+     * and older rows have it null, so cast rather than compare.
+     */
+    public function isFinished(): bool
+    {
+        return (bool) (int) $this->is_finished;
+    }
+
+    /**
      * What this user may do with this meeting's forms.
      *   role     = whose form is "their own": requester | accepter
      *   can_edit = false means read only
+     *   finished = the consultation has ended, which makes the forms read only for
+     *              everyone, participants included
      *   null     = no access at all
      */
     public function accessFor(?int $userId): ?array
     {
+        $finished = $this->isFinished();
+
         if ($role = $this->roleFor($userId)) {
-            return ['role' => $role, 'can_edit' => true];
+            return ['role' => $role, 'can_edit' => !$finished, 'finished' => $finished];
         }
 
         // Not on the call: any doctor (anyone whose category is not RHU Referring) may
@@ -164,7 +177,7 @@ class Teleconsult extends Model implements Auditable
         $category = $this->categoryOf($userId);
 
         if ($category !== null && mb_strtolower(trim($category)) !== mb_strtolower(self::RHU_CATEGORY)) {
-            return ['role' => 'accepter', 'can_edit' => false];
+            return ['role' => 'accepter', 'can_edit' => false, 'finished' => $finished];
         }
 
         return null;

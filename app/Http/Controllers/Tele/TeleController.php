@@ -491,6 +491,7 @@ class TeleController extends Controller
             'data' => [
                 'my_role' => $role,
                 'can_edit' => $access['can_edit'],
+                'finished' => $access['finished'],
                 'other' => $other,
 
                 /* ===================== BASIC MEETING ===================== */

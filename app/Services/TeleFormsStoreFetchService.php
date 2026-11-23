@@ -52,7 +52,10 @@ class TeleFormsStoreFetchService
             }
             if (!$access['can_edit']) {
                 return response()->json([
-                    'message' => "This consultation is read only for you.",
+                    'message' => $access['finished']
+                        ? "This consultation has finished. Its forms can no longer be changed."
+                        : "This consultation is read only for you.",
+                    'finished' => $access['finished'],
                 ], 403);
             }
             $role = $access['role'];
@@ -122,6 +125,7 @@ class TeleFormsStoreFetchService
                 'my_role' => $role,
                 'other_role' => $otherRole,
                 'can_edit' => $access['can_edit'],
+                'finished' => $access['finished'],
             ], 200);
 
         } catch (\Exception $e) {

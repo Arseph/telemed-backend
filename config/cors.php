@@ -19,6 +19,7 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => ['https://telemed.doh12.com', 'http://180.193.207.212', 'http://localhost:5173', 'http://127.0.0.1:5173'
+     ,'http://10.10.124.140:5173'
        ],
 
     'allowed_origins_patterns' => [],

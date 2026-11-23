@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Hash;
@@ -26,62 +27,62 @@ class ProfileCtrl extends Controller
 {
     public function me() {
         $user = Auth::user();
+        $user->load('facility:id,facilityname');
         return response()->json($user);
     }
 
+    // Streams the user's picture (users.picture, under public/) through the
+    // API, since the telemed site only proxies /api/ to Laravel.
     public function profile(Request $req) {
-        $id = Auth::user()->id;
-        $profile = ProfilePic::where('user_id', $id)->first(); 
-        return Response::make($profile->data, 200, [
-            'Content-Type' => $profile->mime_type,
-            'Content-Disposition' => 'inline; filename="' . $profile->name . '"'
-        ]);
+        $picture = Auth::user()->picture;
+        $path = $picture ? public_path($picture) : null;
+        if (!$path || !is_file($path)) {
+            return response()->json(['message' => 'No profile picture.'], 404);
+        }
+        return response()->file($path);
     }
 
+    // Same storage as Manage\UserController so both apps share one picture.
     public function storeProfilePic(Request $request) {
-        $id = Auth::user()->id;
-        $file = $request->file('file');
+        $request->validate([
+            'file' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+        $user = Auth::user();
 
-        if ($file && $file->isValid()) {
-            $blobData = file_get_contents($file);
-
-            ProfilePic::updateOrCreate(
-                ['user_id' => $id], 
-                [
-                    'mime_type' => $file->getClientMimeType(),
-                    'name' => 'ro12.' . $file->getClientOriginalExtension(),
-                    'data' => $blobData,
-                ]
-            );
-
-            return response()->json(['message' => 'Profile saved successfully!']);
+        $destinationPath = public_path('images/profilepictures');
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
         }
+        $file = $request->file('file');
+        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($destinationPath, $filename);
 
-        return response()->json(['message' => 'File upload failed.'], 400);
+        $user->update(['picture' => 'images/profilepictures/' . $filename]);
+
+        return response()->json(['message' => 'Profile saved successfully!']);
     }
 
     public function storeProfile(Request $req) {
         $user = Auth::user();
-        if($user) {
-            $user->info->update([
-                'first_name' => $req->firstName,
-                'middle_name' => $req->middleName,
-                'sur_name' => $req->lastName,
-                'email_add' => $req->email,
-                'cell_no' => $req->phone,
-                'title_name' => $req->titleName,
-            ]);
-            $user->update([
-                'email' => $req->email,
-            ]);
-            return response()->json(['message' => 'Profile saved successfully!']);
-        }
-        return response()->json(['message' => 'User not Found.'], 400);
+        $validated = $req->validate([
+            'fname' => 'required|string|max:255',
+            'mname' => 'nullable|string|max:255',
+            'lname' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'contact' => 'nullable|string|max:255',
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+        ]);
+        $user->update($validated);
+        $user->load('facility:id,facilityname');
+        return response()->json(['message' => 'Profile saved successfully!', 'user' => $user]);
     }
 
     public function storeSecurity(Request $req) {
         $user = Auth::user();
         if($user) {
+            $req->validate([
+                'userName' => ['required', 'string', Rule::unique('users', 'username')->ignore($user->id)],
+            ], ['userName.unique' => 'That username is already taken.']);
             if(Hash::check($req->currentPassword, $user->password)) {
                 $validator = Validator::make($req->all(), [
                     'newPassword' => [

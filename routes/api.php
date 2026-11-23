@@ -25,6 +25,7 @@ use App\Http\Controllers\Superadmin\HomeController as SuperadminHomeController;
 use App\Http\Controllers\Superadmin\LabRequestCtrl;
 use App\Http\Controllers\Superadmin\ManageController as SuperadminManageController;
 use App\Http\Controllers\Tele\TeleController;
+use App\Http\Controllers\Tele\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -97,6 +98,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('/doctor-category-store', [SuperadminManageController::class, 'storeDoccat']);
     Route::post('/doctor-category-delete/{id}', [SuperadminManageController::class, 'deleteDoccat']);
     Route::post('/zoom-credential', [SuperadminManageController::class, 'zoomCredit']);
+
+    // Admin statistics dashboard (superadmin only, checked in the controller)
+    Route::get('dashboard/stats', [DashboardController::class, 'stats']);
 
     // Admin Module
     Route::get('admin/support', [AdminHomeController::class, 'index']);
